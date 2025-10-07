@@ -33,6 +33,7 @@ for row in cursor.execute("select id, * from shelves").fetchall():
     
     print("")
 
+connection.commit()
 
 # print specific##
 #
