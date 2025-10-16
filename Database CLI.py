@@ -78,7 +78,10 @@ class DB():
         
         label = input("Wie lautet die Bezeichnung des Regals?\n> ")
         
+        response = input(f"\nSicher, dass du das Regal {label} löschen willst [y/N]\n> ")
         
+        if response not in ["Y", "y"]:
+            return
         
         self.cursor.execute("delete from shelves where label = ?", [label])
         self.connection.commit()
