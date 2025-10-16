@@ -39,7 +39,7 @@ class DB():
     
         try:
             response = int(response)
-        except:
+        except ValueError:
             return
         
         if response not in range(num_options + 1):
