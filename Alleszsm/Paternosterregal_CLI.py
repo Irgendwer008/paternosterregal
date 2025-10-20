@@ -3,6 +3,7 @@ import LED
 import Motor
 
 import os
+import traceback
 
 if os.getenv("USER") != "root":
     print("Dieses Programm muss mit superuser-Rechten ausgeführt werden!")
@@ -41,7 +42,9 @@ def menu():
                "Datenbank zurücksetzen",
                "Motor steuern manuell",
                "Motor steuern position",
-               "Motorposition zurücksetzen"]
+               "Motorposition zurücksetzen",
+               "Fach anfahren",
+               "Fach suchen und anfahren"]
     
     num_options = len(options)
     
@@ -66,6 +69,8 @@ def menu():
         case 5: manual_motorcontrol()
         case 6: manual_motorcontrol_position()
         case 7: reset_motor_position()
+        case 8: move_to_compartment_known()
+        case 9: move_to_compartment_search()
         
 def print_db():
     
@@ -111,7 +116,7 @@ def manual_motorcontrol():
     
     try:
         while True:
-            motor.step(int(input("> ")))
+            motor.move_step(int(input("> ")))
     except KeyboardInterrupt:
         return
     
@@ -122,17 +127,88 @@ def manual_motorcontrol_position():
     
     try:
         while True:
-            motor.move(int(input("> ")))
+            motor.move_to_position(int(input("> ")))
     except KeyboardInterrupt:
         return
     
 def reset_motor_position():
     motor.position = 0
 
+def move_to_compartment_known():
+    reset_screen("Fach anfahren")
+    shelf_label_input = input("In welchem Regal ist das Fach?\n> ")
+    
+    db.cursor.execute("select rowid from shelves where label = ?", [shelf_label_input])
+    shelf = db.cursor.fetchone()
+        
+    if shelf is None:
+        input("Dieses Regal existiert nicht. Bitte starte den Vorgang erneut!\n> ")
+        return
+    
+    print("Dieses Regal beinhaltet folgende Fächer:\n")
+    
+    found_compartments = db.cursor.execute("select * from compartments where shelf = ?", shelf).fetchall()
+    for compartment in found_compartments:
+        print(f"{compartment[0]}: {compartment[2]} ({compartment[3]}-{compartment[3]+compartment[4]})")
+        
+    compartment_ids = []
+    for compartment in found_compartments:
+        compartment_ids.append(compartment[0])
+    
+    try:
+        compartment_id = int(input("\nWelches Fach möchtest du anfahren? (ID)\n> "))
+        if compartment_id not in compartment_ids:
+            raise IndexError
+    except IndexError:
+        print("Dies ist keine valide Nummer, bitte starte den Vorgang erneut!\n> ")
+    
+    compartment = db.cursor.execute("select * from compartments where rowid = ?", [compartment_id]).fetchone()    
+    led.highlight(compartment[3], compartment[3] + compartment[4])
+    
+    print(shelf)
+    
+    #motor.move_to_position(int(shelf[0]*800/3))
+
+def move_to_compartment_search():
+    reset_screen("Suche")
+    
+    search = input("Wonach möchtest du suchen?:\n>")
+    
+    print("Es wurden folgende Fächer zu deiner Suche gefunden:")
+    
+    found_compartments = db.cursor.execute("select * from compartments where cargo like ?", [f"%{search}%"]).fetchall()
+    
+    for compartment in found_compartments:
+        shelf = db.cursor.execute("select label from shelves where rowid = ?", [compartment[1]]).fetchone()
+        print(f"Fach {compartment[0]} in Regal {shelf[0]}: {compartment[2]} ({compartment[3]}-{compartment[3]+compartment[4]})")
+        
+    compartment_ids = []
+    for compartment in found_compartments:
+        compartment_ids.append(compartment[0])
+    
+    try:
+        compartment_id = int(input("\nWelches Fach möchtest du anfahren? (ID)\n> "))
+        if compartment_id not in compartment_ids:
+            raise IndexError
+    except IndexError:
+        print("Dies ist keine valide Nummer, bitte starte den Vorgang erneut!\n> ")
+    
+    compartment = db.cursor.execute("select * from compartments where rowid = ?", [compartment_id]).fetchone()    
+    led.highlight(compartment[3], compartment[3] + compartment[4])
+    
+    print(shelf)
+    
+    #motor.move_to_position(int(shelf[0]*800/3))
+
 try:
     while True:
         menu()   
-except:
+except KeyboardInterrupt:
+    led.clear()
+    motor.exit()
+    print("\n")
+except Exception:
+    print(traceback.format_exc())
     led.clear()
     motor.exit()
     print("\n")

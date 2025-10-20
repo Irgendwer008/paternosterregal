@@ -24,3 +24,15 @@ class LED():
             for j in range(self.strip.numPixels()):
                 self.strip.setPixelColorRGB(j, i, 0, 255-i)
                 self.strip.show()
+    
+    def highlight(self, start: int, end: int, r: int = 255, g: int = 255, b: int = 255):
+        for i in range(0, start-1):
+            self.strip.setPixelColorRGB(i, 0, 0, 0)
+            
+        for i in range(start-1, end):
+            self.strip.setPixelColorRGB(i, r, g, b)
+            
+        for i in range(end, self.strip.numPixels()):
+            self.strip.setPixelColorRGB(i, 0, 0, 0)
+            
+        self.strip.show()

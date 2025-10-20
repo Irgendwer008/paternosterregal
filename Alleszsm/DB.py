@@ -15,7 +15,7 @@ class DB:
             string += f"{row[1]} || "
             
             for col in self.cursor.execute("select * from compartments where shelf = ?", (row[0],)).fetchall():
-                string += f"{col[0]}: {col[2]} | "
+                string += f"{col[0]}: {col[2]} ({col[3]}-{col[3]+col[4]})| "
             
             string += "\n"
         
@@ -35,9 +35,8 @@ class DB:
         shelves = [("A",), ("B",), ("C",)]
         compartments = [(1, "M6 Screws"), (1, "M5 Screws"), (2, "Screwdriver"), (3, "M5 Nut"), (3, "M6 Nut"), (3, "M7 Nut")]
 
-
         for i in range(compartments.__len__()):
-            compartments[i] = (compartments[i][0], compartments[i][1], i * 3, 3)
+            compartments[i] = (compartments[i][0], compartments[i][1], i * 6 + 3, 5)
 
         self.cursor.executemany("insert into shelves (label) values (?)", shelves)
         self.cursor.executemany("insert into compartments (shelf, cargo, position, length) values (?, ?, ?, ?)", compartments)

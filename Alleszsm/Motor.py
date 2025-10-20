@@ -13,11 +13,11 @@ class Motor():
         
         self.position = 0
         
-    def move(self, target: int):
+    def move_to_position(self, target: int):
         if target != self.position:
-            self.step(target - self.position)
+            self.move_step(target - self.position)
     
-    def step(self, steps: int):
+    def move_step(self, steps: int):
         if steps == 0:
             return
         
