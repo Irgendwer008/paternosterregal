@@ -1,8 +1,8 @@
 import sqlite3
 
 class DB:
-    def __init__(self):
-        self.connection = sqlite3.connect('paternosterregal.db')
+    def __init__(self, filename: str):
+        self.connection = sqlite3.connect(filename)
         self.connection.execute("PRAGMA foreign_keys = ON")
         self.cursor = self.connection.cursor()
         
