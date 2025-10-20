@@ -2,6 +2,13 @@ import DB
 import LED
 import Motor
 
+import os
+
+if os.getenv("USER") != "root":
+    print("Dieses Programm muss mit superuser-Rechten ausgeführt werden!")
+    
+    exit()
+
 db = DB.DB()
 led = LED.LED(LED_COUNT=64)
 motor = Motor.Motor(STEP_PIN=17, DIR_PIN=27)
@@ -123,6 +130,10 @@ def reset_motor_position():
     motor.position = 0
 
 try:
+    exit()
+    
+    print(os.getenv("USER"))
+    
     while True:
         menu()   
 except:
