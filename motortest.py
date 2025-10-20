@@ -1,13 +1,22 @@
+import RPi.GPIO as GPIO
 import time
-from rpi_hardware_pwm import HardwarePWM
 
-pwm = HardwarePWM(pwm_channel=0, hz=60, chip=0)
-pwm.start(100) # full duty cycle
+# Set up the GPIO pin numbering mode
+GPIO.setmode(GPIO.BCM)
 
-pwm.change_duty_cycle(50)
-pwm.change_frequency(25_000)
+# Set up the GPIO pin for the LED
+LED_PIN = 17
+GPIO.setup(LED_PIN, GPIO.OUT)
 
-time.sleep(5)
+try:
+    while True:
+        GPIO.output(LED_PIN, GPIO.HIGH)
+        time.sleep(0.01)  # Wait for 1 second
 
-pwm.stop()
+        GPIO.output(LED_PIN, GPIO.LOW)
+        time.sleep(0.01)  # Wait for 1 second
 
+except KeyboardInterrupt:
+    # Clean up the GPIO pins on exit
+    GPIO.cleanup()
+    print("Program exited cleanly")

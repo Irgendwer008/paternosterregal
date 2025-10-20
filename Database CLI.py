@@ -5,6 +5,25 @@ class DB():
         self.connection = sqlite3.connect('paternosterregal.db')
         self.connection.execute("PRAGMA foreign_keys = ON")
         self.cursor = self.connection.cursor()
+        
+        self.cursor.execute("DROP TABLE IF EXISTS shelves")
+        self.cursor.execute("DROP TABLE IF EXISTS compartments")
+        
+        self.cursor.execute("create table shelves (id integer primary key, label text)")
+        self.cursor.execute("create table compartments (id integer primary key, shelf integer, cargo text, position integer, length integer, foreign key (shelf) references shelves(id) on delete cascade)")
+
+        shelves = [("A",), ("B",), ("C",)]
+        compartments = [(1, "M6 Screws"), (1, "M5 Screws"), (2, "Screwdriver"), (3, "M5 Nut"), (3, "M6 Nut"), (3, "M7 Nut")]
+
+
+        for i in range(compartments.__len__()):
+            compartments[i] = (compartments[i][0], compartments[i][1], i * 3, 3)
+
+        self.cursor.executemany("insert into shelves (label) values (?)", shelves)
+        self.cursor.executemany("insert into compartments (shelf, cargo, position, length) values (?, ?, ?, ?)", compartments)
+
+        self.connection.commit()
+
 
     def reset_screen(self, heading: str = None):
         print(chr(27) + "[H" + chr(27) + "[J", end="")
@@ -59,7 +78,7 @@ class DB():
         for row in self.cursor.execute("select * from shelves").fetchall():
             print(f"{row[1]} || ", end="")
             
-            for col in self.cursor.execute("select * from comparments where shelf = ?", (row[0],)).fetchall():
+            for col in self.cursor.execute("select * from compartments where shelf = ?", (row[0],)).fetchall():
                 print(f"{col[0]}: {col[2]} | ", end="")
             
             print("")
@@ -110,7 +129,7 @@ class DB():
         if response in ["N", "n"]:
             return
         
-        self.cursor.execute("insert into comparments (shelf, cargo, position, length) values (?, ?, ?, ?)", [shelf_id[0], cargo_text, position, length])
+        self.cursor.execute("insert into compartments (shelf, cargo, position, length) values (?, ?, ?, ?)", [shelf_id[0], cargo_text, position, length])
         self.connection.commit()
     
     def remove_compartment(self):
@@ -127,7 +146,7 @@ class DB():
         
         print("Dieses Regal beinhaltet folgende Fächer:\n")
         
-        found_compartments = self.cursor.execute("select * from comparments where shelf = ?", shelf_id).fetchall()
+        found_compartments = self.cursor.execute("select * from compartments where shelf = ?", shelf_id).fetchall()
         for compartment in found_compartments:
             print(f"{compartment[0]}: {compartment[2]} ({compartment[3]}-{compartment[4]})")
             
@@ -147,7 +166,7 @@ class DB():
         if response not in ["Y", "y"]:
             return
         
-        self.cursor.execute("delete from comparments where id = ?", [shelf_id])
+        self.cursor.execute("delete from compartments where id = ?", [shelf_id])
         self.connection.commit()
     
     def reset_db(self):
@@ -159,20 +178,20 @@ class DB():
             return
                 
         self.cursor.execute("DROP TABLE IF EXISTS shelves")
-        self.cursor.execute("DROP TABLE IF EXISTS comparments")
+        self.cursor.execute("DROP TABLE IF EXISTS compartments")
 
         self.cursor.execute("create table shelves (id integer primary key, label text)")
-        self.cursor.execute("create table comparments (id integer primary key, shelf integer, cargo text, position integer, length integer, foreign key (shelf) references shelves(id) on delete cascade)")
+        self.cursor.execute("create table compartments (id integer primary key, shelf integer, cargo text, position integer, length integer, foreign key (shelf) references shelves(id) on delete cascade)")
 
         shelves = [("A",), ("B",), ("C",)]
-        comparments = [(1, "M6 Screws"), (1, "M5 Screws"), (2, "Screwdriver"), (3, "M5 Nut"), (3, "M6 Nut"), (3, "M7 Nut")]
+        compartments = [(1, "M6 Screws"), (1, "M5 Screws"), (2, "Screwdriver"), (3, "M5 Nut"), (3, "M6 Nut"), (3, "M7 Nut")]
 
 
-        for i in range(comparments.__len__()):
-            comparments[i] = (comparments[i][0], comparments[i][1], i * 3, 3)
+        for i in range(compartments.__len__()):
+            compartments[i] = (compartments[i][0], compartments[i][1], i * 3, 3)
 
         self.cursor.executemany("insert into shelves (label) values (?)", shelves)
-        self.cursor.executemany("insert into comparments (shelf, cargo, position, length) values (?, ?, ?, ?)", comparments)
+        self.cursor.executemany("insert into compartments (shelf, cargo, position, length) values (?, ?, ?, ?)", compartments)
 
         self.connection.commit()
         
