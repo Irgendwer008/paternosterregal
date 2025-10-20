@@ -3,7 +3,7 @@ from rpi_ws281x import PixelStrip, Color
 
 
 # LED strip configuration:
-LED_COUNT = 5        # Number of LED pixels.
+LED_COUNT = 64        # Number of LED pixels.
 LED_PIN = 18          # GPIO pin co nnected to the pixels (18 uses PWM!).
 #LED_PIN = 10        # GPIO pin connected to the pixels (10 uses SPI /dev/spidev0.0).
 LED_FREQ_HZ = 800000  # LED signal frequency in hertz (usually 800khz)
@@ -40,20 +40,20 @@ if __name__ == '__main__':
     strip.begin()
     
     try:
+    
+        rainbow()
         # Lauf
         for i in range(strip.numPixels()):
+            print(i)
             for j in range(strip.numPixels()):
                 if i == j:
                     strip.setPixelColor(j, Color(255, 100, 0, 0))
                 else:
                     strip.setPixelColor(j, Color(0, 0, 0, 0))
                 strip.show()
-                time.sleep(0.01)
-            time.sleep(0.33)
         
         for i in range(strip.numPixels()):
             strip.setPixelColor(i, Color(255, 100, 0, 0))
-            time.sleep(0.01)
         strip.show()
             
         time.sleep(0.33)
@@ -61,10 +61,6 @@ if __name__ == '__main__':
         for i in range(strip.numPixels()):
             strip.setPixelColor(i, Color(0, 0, 0, 0))
         strip.show()
-        
-        # Regenbogen
-        rainbow()
-        rainbow()
  
         clear()
 
