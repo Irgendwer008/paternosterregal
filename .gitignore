@@ -1,3 +1,4 @@
 /.lgd-nfy0
 /venv
 *.db
+*/__pycache__
