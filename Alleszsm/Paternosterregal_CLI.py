@@ -130,10 +130,6 @@ def reset_motor_position():
     motor.position = 0
 
 try:
-    exit()
-    
-    print(os.getenv("USER"))
-    
     while True:
         menu()   
 except:
