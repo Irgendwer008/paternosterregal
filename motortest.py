@@ -11,10 +11,10 @@ GPIO.setup(LED_PIN, GPIO.OUT)
 try:
     while True:
         GPIO.output(LED_PIN, GPIO.HIGH)
-        time.sleep(0.003)  # Wait for 1 second
+        time.sleep(0.005)  # Wait for 1 second
 
         GPIO.output(LED_PIN, GPIO.LOW)
-        time.sleep(0.003)  # Wait for 1 second
+        time.sleep(0.005)  # Wait for 1 second
 
 except KeyboardInterrupt:
     # Clean up the GPIO pins on exit

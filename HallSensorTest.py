@@ -4,7 +4,7 @@ from signal import pause
 
 Device.pin_factory = PiGPIOFactory()
 
-button = Button(17)
+button = Button(22)
 
 state = False
 
