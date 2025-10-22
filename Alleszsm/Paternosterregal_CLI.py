@@ -12,7 +12,7 @@ if os.getenv("USER") != "root":
 
 db = DB.DB(filename="paternosterregal.db")
 led = LED.LED(LED_COUNT=64)
-motor = Motor.Motor(STEP_PIN=17, DIR_PIN=27)
+motor = Motor.Motor(STEP_PIN=17, DIR_PIN=27, HALL_PIN=22, PAUSE_TIME=0.005)
 
 def reset_screen(heading: str = None):
     print(chr(27) + "[H" + chr(27) + "[J", end="")
@@ -44,7 +44,8 @@ def menu():
                "Motor steuern position",
                "Motorposition zurücksetzen",
                "Fach anfahren",
-               "Fach suchen und anfahren"]
+               "Fach suchen und anfahren",
+               "Referenzfahrt"]
     
     num_options = len(options)
     
@@ -71,6 +72,7 @@ def menu():
         case 7: reset_motor_position()
         case 8: move_to_compartment_known()
         case 9: move_to_compartment_search()
+        case 10: homing()
         
 def print_db():
     
@@ -160,13 +162,11 @@ def move_to_compartment_known():
         if compartment_id not in compartment_ids:
             raise IndexError
     except IndexError:
-        print("Dies ist keine valide Nummer, bitte starte den Vorgang erneut!\n> ")
+        input("Dies ist keine valide Nummer, bitte starte den Vorgang erneut!\n> ")
     
-    compartment = db.cursor.execute("select * from compartments where rowid = ?", [compartment_id]).fetchone()    
+    compartment = db.cursor.execute("select * from compartments where rowid = ?", [compartment_id]).fetchone()
+    
     led.highlight(compartment[3], compartment[3] + compartment[4])
-    
-    print(shelf)
-    
     #motor.move_to_position(int(shelf[0]*800/3))
 
 def move_to_compartment_search():
@@ -179,8 +179,8 @@ def move_to_compartment_search():
     found_compartments = db.cursor.execute("select * from compartments where cargo like ?", [f"%{search}%"]).fetchall()
     
     for compartment in found_compartments:
-        shelf = db.cursor.execute("select label from shelves where rowid = ?", [compartment[1]]).fetchone()
-        print(f"Fach {compartment[0]} in Regal {shelf[0]}: {compartment[2]} ({compartment[3]}-{compartment[3]+compartment[4]})")
+        shelf = db.cursor.execute("select rowid, label from shelves where rowid = ?", [compartment[1]]).fetchone()
+        print(f"Fach {compartment[0]} in Regal {shelf[1]}: {compartment[2]} ({compartment[3]}-{compartment[3]+compartment[4]})")
         
     compartment_ids = []
     for compartment in found_compartments:
@@ -191,14 +191,19 @@ def move_to_compartment_search():
         if compartment_id not in compartment_ids:
             raise IndexError
     except IndexError:
-        print("Dies ist keine valide Nummer, bitte starte den Vorgang erneut!\n> ")
+        input("Dies ist keine valide Nummer, bitte starte den Vorgang erneut!\n> ")
     
-    compartment = db.cursor.execute("select * from compartments where rowid = ?", [compartment_id]).fetchone()    
+    compartment = db.cursor.execute("select * from compartments where rowid = ?", [compartment_id]).fetchone()
+    shelf_position = db.cursor.execute("select position from shelves where rowid = ?", [compartment[1]]).fetchone()[0]
+    
+    motor.move_to_position(shelf_position)
     led.highlight(compartment[3], compartment[3] + compartment[4])
     
-    print(shelf)
-    
-    #motor.move_to_position(int(shelf[0]*800/3))
+    input("Bestätigen\n> ")
+    led.clear()
+
+def homing():
+    motor.homing()
 
 try:
     while True:
@@ -206,9 +211,9 @@ try:
 except KeyboardInterrupt:
     led.clear()
     motor.exit()
-    print("\n")
+    print("Exited cleanly\n")
 except Exception:
     print(traceback.format_exc())
     led.clear()
     motor.exit()
-    print("\n")
+    print("Exited cleanly\n")

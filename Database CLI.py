@@ -79,7 +79,7 @@ class DB():
             print(f"{row[1]} || ", end="")
             
             for col in self.cursor.execute("select * from compartments where shelf = ?", (row[0],)).fetchall():
-                print(f"{col[0]}: {col[2]} | ", end="")
+                print(f"{col[0]}: {col[2]} ({col[3]}-{col[3]+col[4]})| ", end="")
             
             print("")
         
