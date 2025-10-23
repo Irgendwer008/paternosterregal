@@ -1,5 +1,5 @@
 import math
-from typing import Callable, Tuple, Any
+from typing import Callable, Tuple, Any, List
 
 def reset_screen(heading: str = None):
     print(chr(27) + "[H" + chr(27) + "[J", end="")
@@ -80,3 +80,6 @@ def ask_confirm(bias: bool = False) -> bool:
 
 def nothing() -> None:
     return
+
+def search(table: str, column: str, string: str, db):
+    return db.connection.execute(f"select id, * from {table} where {column} = ?", [string]).fetchall()
