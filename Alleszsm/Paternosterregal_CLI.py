@@ -1,3 +1,4 @@
+import helper
 import DB
 import LED
 import Motor
@@ -7,102 +8,41 @@ import traceback
 
 if os.getenv("USER") != "root":
     print("Dieses Programm muss mit superuser-Rechten ausgeführt werden!")
-    
     exit()
 
 db = DB.DB(filename="paternosterregal.db")
 led = LED.LED(LED_COUNT=64)
 motor = Motor.Motor(STEP_PIN=17, DIR_PIN=27, HALL_PIN=22, PAUSE_TIME=0.005)
 
-def reset_screen(heading: str = None):
-    print(chr(27) + "[H" + chr(27) + "[J", end="")
-    
-    print("######################################")
-    print("##  Paternosterregal Datenbank CLI  ##")
-    print("######################################")
-    
-    if heading is not None:
-        # Print heading
-        print("\n  " + heading)
-        
-        # Print heading underline
-        print("\u2558", end="")
-        for i in range(0, len(heading) + 2):
-            print("\u2550", end="")
-        print("\u255B")
-    else:
-        print("")
+is_position_known = False
             
-def menu():
-    reset_screen("Menü")
+def main_menu():
+        
+    options = (("Referenzfahrt", homing),
+               ("Teile Auslagern", helper.nothing),
+               ("Teile Einlagern", helper.nothing),
+               ("Datenbank anzeigen", print_db),
+               ("Datenbank durchsuchen (coming soon)", helper.nothing),
+               ("Fach...", compartment_menu),
+               ("Ware... (coming soon)", helper.nothing)
+               ("=== Testfunktionen ===", helper.nothing),
+               ("Datenbank zurücksetzen", reset_db),
+               ("Motorposition zurücksetzen", reset_motor_position)
+               ("Motor steuern manuell", manual_motorcontrol),
+               ("Motor steuern manuell: Position", manual_motorcontrol_position))
     
-    options = ["Datenbank anzeigen",
-               "Regal hinzufügen",
-               "Regal löschen",
-               "Datenbank zurücksetzen",
-               "Motor steuern manuell",
-               "Motor steuern position",
-               "Motorposition zurücksetzen",
-               "Fach anfahren",
-               "Fach suchen und anfahren",
-               "Referenzfahrt"]
-    
-    num_options = len(options)
-    
-    for i in range(num_options):
-        print(f" ({i+1}) " + options[i])
-    
-    response = input("\n> ")
-
-    try:
-        response = int(response)
-    except ValueError:
-        return
-    
-    if response not in range(num_options + 1):
-        return
-    
-    match response:
-        case 1: print_db()
-        case 2: add_shelf()
-        case 3: remove_shelf()
-        case 4: reset_db()
-        case 5: manual_motorcontrol()
-        case 6: manual_motorcontrol_position()
-        case 7: reset_motor_position()
-        case 8: move_to_compartment_known()
-        case 9: move_to_compartment_search()
-        case 10: homing()
+    helper.menu("Menü", options)
         
 def print_db():
     
-    reset_screen("Übersicht")
+    helper.reset_screen("Übersicht")
     
     print(db.to_string())
         
     input("\n> ")
-        
-def add_shelf():
-    reset_screen("Regal hinzufügen")
-    
-    label = input("Wie lautet die Bezeichnung des Regals?\n> ")
-    db.add_shelf(label)
-    
-def remove_shelf():
-    reset_screen("Regal löschen")
-    
-    label = input("Wie lautet die Bezeichnung des Regals?\n> ")
-    
-    response = input(f"\nSicher, dass du das Regal {label} löschen willst [y/N]\n> ")
-    
-    if response not in ["Y", "y"]:
-        return
-    
-    db.cursor.execute("delete from shelves where label = ?", [label])
-    db.connection.commit()
 
 def reset_db():
-    reset_screen("Zurücksetzen")
+    helper.reset_screen("Zurücksetzen")
     
     response = input("Sicher, dass du die Tabelle zurücksetzen willst? [y/N]\n> ")
     
@@ -112,102 +52,245 @@ def reset_db():
     db.reset()
 
 def manual_motorcontrol():
-    reset_screen("Motorsteuerung manuel")
+    helper.reset_screen("Motorsteuerung manuel")
     
     print("Gib an, wie viele Schritte der Motor fahren soll. KeyboardInterrupt zum beenden.")
     
     try:
         while True:
-            motor.move_step(int(input("> ")))
+            string = input("> ")
+            if string != "":
+                motor.move_step(int(string))
     except KeyboardInterrupt:
         return
     
 def manual_motorcontrol_position():
-    reset_screen("Motorsteuerung manuel auf Position")
+    helper.reset_screen("Motorsteuerung manuel auf Position")
     
     print("Gib an, zu welcher Position der Motor fahren soll. KeyboardInterrupt zum beenden.")
     
     try:
         while True:
-            motor.move_to_position(int(input("> ")))
+            string = input("> ")
+            if string != "":
+                motor.move_to_position(int(string))
     except KeyboardInterrupt:
         return
     
 def reset_motor_position():
     motor.position = 0
 
-def move_to_compartment_known():
-    reset_screen("Fach anfahren")
-    shelf_label_input = input("In welchem Regal ist das Fach?\n> ")
-    
-    db.cursor.execute("select rowid from shelves where label = ?", [shelf_label_input])
-    shelf = db.cursor.fetchone()
-        
-    if shelf is None:
-        input("Dieses Regal existiert nicht. Bitte starte den Vorgang erneut!\n> ")
-        return
-    
-    print("Dieses Regal beinhaltet folgende Fächer:\n")
-    
-    found_compartments = db.cursor.execute("select * from compartments where shelf = ?", shelf).fetchall()
-    for compartment in found_compartments:
-        print(f"{compartment[0]}: {compartment[2]} ({compartment[3]}-{compartment[3]+compartment[4]})")
-        
-    compartment_ids = []
-    for compartment in found_compartments:
-        compartment_ids.append(compartment[0])
-    
-    try:
-        compartment_id = int(input("\nWelches Fach möchtest du anfahren? (ID)\n> "))
-        if compartment_id not in compartment_ids:
-            raise IndexError
-    except IndexError:
-        input("Dies ist keine valide Nummer, bitte starte den Vorgang erneut!\n> ")
-    
-    compartment = db.cursor.execute("select * from compartments where rowid = ?", [compartment_id]).fetchone()
-    
-    led.highlight(compartment[3], compartment[3] + compartment[4])
-    #motor.move_to_position(int(shelf[0]*800/3))
-
-def move_to_compartment_search():
-    reset_screen("Suche")
-    
-    search = input("Wonach möchtest du suchen?:\n>")
-    
-    print("Es wurden folgende Fächer zu deiner Suche gefunden:")
-    
-    found_compartments = db.cursor.execute("select * from compartments where cargo like ?", [f"%{search}%"]).fetchall()
-    
-    for compartment in found_compartments:
-        shelf = db.cursor.execute("select rowid, label from shelves where rowid = ?", [compartment[1]]).fetchone()
-        print(f"Fach {compartment[0]} in Regal {shelf[1]}: {compartment[2]} ({compartment[3]}-{compartment[3]+compartment[4]})")
-        
-    compartment_ids = []
-    for compartment in found_compartments:
-        compartment_ids.append(compartment[0])
-    
-    try:
-        compartment_id = int(input("\nWelches Fach möchtest du anfahren? (ID)\n> "))
-        if compartment_id not in compartment_ids:
-            raise IndexError
-    except IndexError:
-        input("Dies ist keine valide Nummer, bitte starte den Vorgang erneut!\n> ")
-    
-    compartment = db.cursor.execute("select * from compartments where rowid = ?", [compartment_id]).fetchone()
-    shelf_position = db.cursor.execute("select position from shelves where rowid = ?", [compartment[1]]).fetchone()[0]
-    
-    motor.move_to_position(shelf_position)
-    led.highlight(compartment[3], compartment[3] + compartment[4])
-    
-    input("Bestätigen\n> ")
-    led.clear()
-
 def homing():
     motor.homing()
+    is_position_known = True
+
+def compartment_menu():
+    options = [("...hinzufügen", add_compartment),
+               ("...bearbeiten", edit_compartment_menu),
+               ("...löschen", delete_compartment)]
+        
+    helper.menu("Fach...", options)
+
+def add_compartment():
+    helper.reset_screen("Fach hinzufügen")
+    
+    ## Regal ##
+    
+    print("Zu welchem Regal soll das Fach gehören?\n")
+    
+    for shelf in db.connection.execute("select id, label from shelves").fetchall():
+        print(f" ({shelf[0]}) {shelf[1]}")
+        
+    while True:
+        try:
+            shelf_id = int(input("\n > "))
+            if shelf_id in range(shelf[0] + 1): # range() is zero-index-based
+                break
+        except ValueError:
+            pass
+        
+        print("\nKeine Valide Eingabe, bitte versuche es erneut:")
+    
+    ## Position ##
+        
+    position = helper.ask_integer("An welcher Position soll das Fach beginnen?")
+    
+    ## Länge ##
+        
+    length = helper.ask_integer("Wie lang soll das Fach sein?")
+    
+    ## Eintrag erstellen ##
+    
+    db.cursor.execute("insert into compartments (shelf, position, length) values (?, ?, ?)", [shelf_id, position, length])
+    db.connection.commit()
+
+def edit_compartment_menu():
+    helper.reset_screen("Fach löschen")
+    
+    ## Regal ##
+    
+    print("Zu welchem Regal gehört das Fach?\n")
+    
+    compartments = db.connection.execute("select shelf from compartments").fetchall()
+    used_shelves = [x[0] for x in compartments]
+    
+    for shelf in db.connection.execute("select id, label from shelves").fetchall():
+        if shelf[0] in used_shelves:
+            print(f" ({shelf[0]}) {shelf[1]}")
+        
+    while True:
+        try:
+            shelf_id = int(input("\n > "))
+            if shelf_id in range(shelf[0] + 1): # range() is zero-index-based
+                break
+        except ValueError:
+            pass
+        
+        print("\nKeine Valide Eingabe, bitte versuche es erneut:")
+    
+    ## Fach ##
+    
+    print("\n Welches Fach möchtest du bearbeiten?\n")
+    
+    for compartment in db.connection.execute("select id, position, length from compartments where shelf = ?", [shelf_id]).fetchall():
+        print(f" ({compartment[0]}) {compartment[1]}-{compartment[2]}")
+        
+    while True:
+        try:
+            compartment_id = int(input("\n > "))
+            if compartment_id in range(compartment[0] + 1): # range() is zero-index-based
+                break
+        except ValueError:
+            pass
+        
+        print("\nKeine Valide Eingabe, bitte versuche es erneut:")
+    
+    
+    options = [("Regalzuordnung", edit_compartment_shelf),
+               ("Startposition", edit_compartment_startingposition),
+               ("Länge", edit_compartment_length)]
+        
+    helper.menu("Fach bearbeiten", options, compartment_id)
+
+def edit_compartment_shelf(compartment_id: int):
+    
+    current_shelf = db.connection.execute("SELECT shelves.id, shelves.label FROM compartments JOIN shelves ON compartments.shelf = shelves.id WHERE compartments.id = ?", [compartment_id]).fetchone()
+    
+    helper.reset_screen(f"Fach: Regalzuordnung bearbeiten (Aktuell: {current_shelf[1]})")
+    
+    print("Welchem Regal soll Fach zugeordnet werden?\n")
+    
+    for shelf in db.connection.execute("select id, label from shelves").fetchall():
+        if shelf[0] != current_shelf[0]:
+            print(f" ({shelf[0]}) {shelf[1]}")
+        
+    while True:
+        try:
+            shelf_id = int(input("\n > "))
+            if shelf_id in range(shelf[0] + 1): # range() is zero-index-based
+                break
+        except ValueError:
+            pass
+        
+        print("\nKeine Valide Eingabe, bitte versuche es erneut:")
+    
+    if helper.ask_confirm(bias=True):
+        db.connection.execute("update compartments set shelf = ? where id = ?", (shelf_id, compartment_id))
+        db.connection.commit()
+
+def edit_compartment_startingposition(compartment_id: int):
+    helper.reset_screen("Fach: Startposition bearbeiten")
+    
+    position = helper.ask_integer("An welche Startposition soll das Fach verschoben werden?")
+    
+    if helper.ask_confirm(bias=True):
+        db.connection.execute("update compartments set position = ? where id = ?", (position, compartment_id))
+        db.connection.commit()
+
+def edit_compartment_length(compartment_id: int):
+    helper.reset_screen("Fach: Länge bearbeiten")
+    
+    length = helper.ask_integer("Wie lang soll das Fach werden?")
+    
+    if helper.ask_confirm(bias=True):
+        db.connection.execute("update compartments set length = ? where id = ?", (length, compartment_id))
+        db.connection.commit()
+
+def delete_compartment():
+    helper.reset_screen("Fach löschen")
+    
+    ## Regal ##
+    
+    print("Zu welchem Regal gehört das Fach?\n")
+    
+    compartments = db.connection.execute("select shelf from compartments").fetchall()
+    used_shelves = [x[0] for x in compartments]
+    
+    for shelf in db.connection.execute("select id, label from shelves").fetchall():
+        if shelf[0] in used_shelves:
+            print(f" ({shelf[0]}) {shelf[1]}")
+        
+    while True:
+        try:
+            shelf_id = int(input("\n > "))
+            if shelf_id in range(shelf[0] + 1): # range() is zero-index-based
+                break
+        except ValueError:
+            pass
+        
+        print("\nKeine Valide Eingabe, bitte versuche es erneut:")
+    
+    ## Fach ##
+    
+    print("Welches Fach möchtest du löschen?")
+    
+    for compartment in db.connection.execute("select id, position, length from compartments where shelf = ?", [shelf_id]).fetchall():
+        print(f" ({compartment[0]}) {compartment[1]}-{compartment[2]}")
+        
+    while True:
+        try:
+            compartment_id = int(input("\n > "))
+            if compartment_id in range(compartment[0] + 1): # range() is zero-index-based
+                break
+        except ValueError:
+            pass
+        
+        print("\nKeine Valide Eingabe, bitte versuche es erneut:")
+    
+    ## Eintrag löschen ##
+    
+    if helper.ask_confirm():
+        db.cursor.execute("delete from compartments where id = ?", [compartment_id])
+        db.connection.commit()
+    else:
+        input("\nInfo: Vorgang abgebrochen. > ")
+
+def part_menu():
+    options = [("...erstellen", add_part),
+               ("...einem Fach zuordnen (coming soon)", helper.nothing),
+               ("...aus einem Fach entfernen (coming soon)", helper.nothing),
+               ("...löschen", remove_part)]
+        
+    helper.menu("Ware...", options)
+    
+def add_part():
+    helper.reset_screen("Ware hinzufügen")
+    
+    ## Bezeichnung ##
+        
+    label = helper.ask_integer("Wie lautet die Bezeichnung dieser Ware?")
+    
+    ## Eintrag erstellen ##
+    
+    db.cursor.execute("insert into parts (label) values (?)", [label])
+    db.connection.commit()
+
+def remove_part():
+    helper.reset_screen("Ware löschen")
 
 try:
     while True:
-        menu()   
+        main_menu()   
 except KeyboardInterrupt:
     led.clear()
     motor.exit()
