@@ -17,17 +17,17 @@ motor = Motor.Motor(STEP_PIN=17, DIR_PIN=27, HALL_PIN=22, PAUSE_TIME=0.005)
 is_position_known = False
             
 def main_menu():
-        
+    
     options = (("Referenzfahrt", homing),
                ("Teile Auslagern", helper.nothing),
                ("Teile Einlagern", helper.nothing),
                ("Datenbank anzeigen", print_db),
                ("Datenbank durchsuchen (coming soon)", helper.nothing),
                ("Fach...", compartment_menu),
-               ("Ware... (coming soon)", helper.nothing)
+               ("Ware... (coming soon)", helper.nothing),
                ("=== Testfunktionen ===", helper.nothing),
                ("Datenbank zurücksetzen", reset_db),
-               ("Motorposition zurücksetzen", reset_motor_position)
+               ("Motorposition zurücksetzen", reset_motor_position),
                ("Motor steuern manuell", manual_motorcontrol),
                ("Motor steuern manuell: Position", manual_motorcontrol_position))
     
