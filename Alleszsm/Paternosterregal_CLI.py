@@ -45,7 +45,8 @@ def menu():
                "Motorposition zurücksetzen",
                "Fach anfahren",
                "Fach suchen und anfahren",
-               "Referenzfahrt"]
+               "Referenzfahrt",
+               "Motorposition ausgeben"]
     
     num_options = len(options)
     
@@ -73,6 +74,7 @@ def menu():
         case 8: move_to_compartment_known()
         case 9: move_to_compartment_search()
         case 10: homing()
+        case 11: print_position()
         
 def print_db():
     
@@ -165,9 +167,10 @@ def move_to_compartment_known():
         input("Dies ist keine valide Nummer, bitte starte den Vorgang erneut!\n> ")
     
     compartment = db.cursor.execute("select * from compartments where rowid = ?", [compartment_id]).fetchone()
+    shelf_position = db.cursor.execute("select position from shelves where rowid = ?", [compartment[1]]).fetchone()[0]
     
     led.highlight(compartment[3], compartment[3] + compartment[4])
-    #motor.move_to_position(int(shelf[0]*800/3))
+    motor.move_to_position(shelf_position)
 
 def move_to_compartment_search():
     reset_screen("Suche")
@@ -196,7 +199,7 @@ def move_to_compartment_search():
     compartment = db.cursor.execute("select * from compartments where rowid = ?", [compartment_id]).fetchone()
     shelf_position = db.cursor.execute("select position from shelves where rowid = ?", [compartment[1]]).fetchone()[0]
     
-    motor.move_to_position(shelf_position)
+    motor.move_to_position(int(shelf_position))
     led.highlight(compartment[3], compartment[3] + compartment[4])
     
     input("Bestätigen\n> ")
@@ -204,6 +207,13 @@ def move_to_compartment_search():
 
 def homing():
     motor.homing()
+
+def print_position():
+    reset_screen("Position")
+    
+    print(f"\n Motorposition = {motor.position}")
+    
+    input("\n> ")
 
 try:
     while True:
