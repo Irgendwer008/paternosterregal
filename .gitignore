@@ -1,5 +1,4 @@
 /.lgd-nfy0
 /venv
 *.db
-**/__pycache__/
-**.pyc
+Alleszsm/__pycache__/
