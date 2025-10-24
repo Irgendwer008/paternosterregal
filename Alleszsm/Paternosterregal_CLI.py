@@ -90,6 +90,11 @@ def print_db():
         
     input("\n> ")
 
+
+
+
+
+
 def reset_db():
     helper.reset_screen("Zurücksetzen")
     

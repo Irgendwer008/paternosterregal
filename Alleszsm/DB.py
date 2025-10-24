@@ -17,7 +17,7 @@ class DB:
         string = ""
         
         for shelf in self.cursor.execute("SELECT * FROM shelves").fetchall():
-            string += f"== Regal {shelf[1]}: " + "=" * (terminal_width - len(f"== Regal {shelf[1]}: "))
+            string += f"╡Regal {shelf[1]}:╞" + "═" * (terminal_width - len(f"╡Regal {shelf[1]}:╞"))
             
             compartments = self.cursor.execute("SELECT id, position, length FROM compartments WHERE shelf = ?", [shelf[0]]).fetchall()
             if len(compartments) == 0:
@@ -27,9 +27,9 @@ class DB:
                 current_widht = len(compartment_string)
             
                 parts_compartments_result = self.cursor.execute("""SELECT parts_compartments.stock, parts.label
-                                                                 FROM parts_compartments 
-                                                                 JOIN parts ON parts_compartments.part = parts.id
-                                                                 WHERE parts_compartments.compartment = ?""", [compartment[0]]).fetchall()
+                                                                   FROM parts_compartments 
+                                                                   JOIN parts ON parts_compartments.part = parts.id
+                                                                   WHERE parts_compartments.compartment = ?""", [compartment[0]]).fetchall()
 
                 if len(parts_compartments_result) == 0:
                     compartment_string += "<LEER>  "
@@ -38,7 +38,7 @@ class DB:
                         string_to_add = f"{parts_compartments[0]}x \"{parts_compartments[1]}\", "
                         if current_widht + len(string_to_add) > terminal_width:
                             current_widht = 4 + len(string_to_add) # padding
-                            compartment_string += f"\n    " + string_to_add
+                            compartment_string += f"\n  └ " + string_to_add
                         else:
                             current_widht += len(string_to_add)
                             compartment_string += string_to_add
