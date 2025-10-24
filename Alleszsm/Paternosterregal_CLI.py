@@ -40,6 +40,10 @@ def homing():
 def add_remove_parts():
     helper.reset_screen("Teile ein- & auslagern")
     
+    if not is_position_known:
+        input("Die aktuelle Position ist unbestimmt. Du musst zunächst eine Referenzfahrt ausführen, bevor du diese Funktion nutzen kannst!\n> ")
+        return
+    
     search = input("Nach welchen Teilen suchst du?\n> ")
     
     results = helper.search("parts", "label", search, db, like=True)
@@ -54,26 +58,44 @@ def add_remove_parts():
     connections = db.cursor.execute("""
         SELECT 
             parts_compartments.id,
-            compartments.shelf,
+            shelves.label,
             compartments.position,
             compartments.length,
             parts_compartments.stock
         FROM parts_compartments
         JOIN compartments ON parts_compartments.compartment = compartments.id
+        JOIN shelves ON compartments.shelf = shelves.id
         WHERE parts_compartments.part = ?""", (part_id,)).fetchall()
     
     if len(connections) > 1:
-        print(helper.format_options([[connection[0], f"Fach {connection[1]}, {connection[2]}-{connection[2] + connection[3]}: {connection[4]} übrig"] for connection in connections]))
+        print("\n" + helper.format_options([[connection[0], f"Fach {connection[1]}, {connection[2]}-{connection[2] + connection[3]}: {connection[4]} übrig"] for connection in connections]))
         while True:
             parts_compartments_id = helper.ask_integer()
-            print(parts_compartments_id, connections)
             if parts_compartments_id in [connection[0] for connection in connections]:
                 break
         
     else:
         parts_compartments_id = connections[0][0]
     
+    shelf = db.cursor.execute("""SELECT 
+                                    shelves.position,
+                                    shelves.label,
+                                    compartments.position,
+                                    compartments.length
+                                 FROM parts_compartments
+                                 JOIN compartments ON parts_compartments.compartment = compartments.id
+                                 JOIN shelves ON compartments.shelf = shelves.id
+                                 WHERE parts_compartments.id = ?""", [parts_compartments_id]).fetchone()
+    
+    if not helper.ask_confirm(f"Bewegung zu Regal \"{shelf[1]}\" beginnen?", True):
+        return
+    
+    motor.move_to_position(shelf[0])
+    led.highlight(shelf[2], shelf[2] + shelf[3])
+    
     change = helper.ask_integer("Wie viele Teile wurden dazugegeben (+) oder abgegeben (-)?")
+    
+    led.clear()
     
     stock = db.cursor.execute("SELECT stock FROM parts_compartments WHERE id = ?", (parts_compartments_id,)).fetchone()[0]
     

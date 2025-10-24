@@ -9,8 +9,6 @@ class DB:
         self.connection.execute("PRAGMA foreign_keys = ON")
         self.cursor = self.connection.cursor()
         self.number_of_shelves = number_of_shelves
-        
-        self.reset()
     
     def to_string(self):
         terminal_width = shutil.get_terminal_size((80, 20))[0]
