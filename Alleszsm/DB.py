@@ -1,3 +1,4 @@
+#from colorama import Fore, Back, Style
 import shutil
 import sqlite3
 from xlsxwriter.utility import xl_col_to_name
@@ -93,12 +94,11 @@ class DB:
         parts_compartments = [[1, 1, 5], [2, 1, 10], [3, 1, 2],
                               [4, 2, 1], [5, 2, 50], [6, 1, 253],
                               [7, 4, 23], [8, 5, 220], [9, 4, 54],
-                              [10, 6, 83], [11, 6, 2], [12, 6, 62]]
+                              [10, 5, 83], [11, 5, 2], [12, 5, 62],
+                              [10, 6, 12], [11, 6, 5], [12, 6, 3]]
 
         for i in range(compartments.__len__()):
             compartments[i] = (compartments[i], i * 6 + 3, 5)
-        
-        print(shelves, compartments, parts)
 
         self.cursor.executemany("INSERT INTO shelves (label, position) VALUES (?, ?)", shelves)
         self.cursor.executemany("INSERT INTO compartments (shelf, position, length) VALUES (?, ?, ?)", compartments)

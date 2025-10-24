@@ -21,7 +21,7 @@ def main_menu():
     options = (("Referenzfahrt", homing),
                ("Teile ein- & auslagern", add_remove_parts),
                ("Datenbank anzeigen", print_db),
-               ("Datenbank durchsuchen (coming soon)", helper.nothing),
+               ("Datenbank durchsuchen", search_db),
                ("Fach...", compartment_menu),
                ("Ware... (coming soon)", helper.nothing),
                ("Sicherung... (coming soon)", helper.nothing),
@@ -62,8 +62,6 @@ def add_remove_parts():
         JOIN compartments ON parts_compartments.compartment = compartments.id
         WHERE parts_compartments.part = ?""", (part_id,)).fetchall()
     
-    
-    
     if len(connections) > 1:
         print(helper.format_options([[connection[0], f"Fach {connection[1]}, {connection[2]}-{connection[2] + connection[3]}: {connection[4]} übrig"] for connection in connections]))
         while True:
@@ -90,10 +88,41 @@ def print_db():
         
     input("\n> ")
 
+def search_db():
+    helper.reset_screen("Suche")
 
-
-
-
+    search = input("Nach was möchtest du suchen?\n> ")
+    
+    parts = helper.search("parts", "label", search, db, True)
+    
+    if len(parts) == 0:
+        print(f"\nZu \"{search}\" konnte leider nichts gefunden werden :/\n")
+    else:
+        print(f"\nZu \"{search}\" konnte folgendes gefunden werden:\n")
+        
+        results = []
+        
+        for part in parts:
+            print(f"{part[1]}:")
+            results = db.connection.execute("""SELECT 
+                                        parts_compartments.stock,
+                                        compartments.position,
+                                        compartments.length,
+                                        shelves.label
+                                    FROM parts_compartments
+                                    JOIN compartments ON parts_compartments.compartment = compartments.id
+                                    JOIN shelves ON compartments.shelf = shelves.id
+                                    WHERE parts_compartments.part = ?
+                                    ORDER BY
+                                        shelves.id ASC,
+                                        compartments.id ASC
+                                    """, [part[0]]).fetchall()
+            
+            for result in results:
+                print(f" - {result[0]}x in Fach {result[3]}, {result[1]}-{result[2]}")
+        
+        
+    input("> ")
 
 def reset_db():
     helper.reset_screen("Zurücksetzen")

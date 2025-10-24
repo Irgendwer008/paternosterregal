@@ -4,9 +4,9 @@ from typing import Callable, Tuple, Any, List
 def reset_screen(heading: str = None):
     print(chr(27) + "[H" + chr(27) + "[J", end="")
     
-    print("######################################")
-    print("##  Paternosterregal Datenbank CLI  ##")
-    print("######################################")
+    print("############################")
+    print("##  Paternosterregal CLI  ##")
+    print("############################")
     
     if heading is not None:
         # Print heading
@@ -112,4 +112,4 @@ def search(table: str, column: str, string: str, db, like: bool = False):
         
         return db.cursor.execute(f"SELECT * FROM {table} WHERE {conditions} ORDER BY {column} ASC", params).fetchall()
     else:
-        return db.cursor.execute(f"select * from {table} where {column} = ? order by {column} asc", [string]).fetchall()
+        return db.cursor.execute(f"SELECT * FROM {table} WHERE {column} = ? ORDER BY {column} ASC", [string]).fetchall()
