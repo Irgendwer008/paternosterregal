@@ -1,3 +1,4 @@
+import shutil
 import sqlite3
 from xlsxwriter.utility import xl_col_to_name
 
@@ -11,13 +12,38 @@ class DB:
         self.reset()
     
     def to_string(self):
+        terminal_width = shutil.get_terminal_size((80, 20))[0]
+        
         string = ""
         
-        for row in self.cursor.execute("select * from shelves").fetchall():
-            string += f"{row[1]} || "
+        for shelf in self.cursor.execute("SELECT * FROM shelves").fetchall():
+            string += f"== Regal {shelf[1]}: " + "=" * (terminal_width - len(f"== Regal {shelf[1]}: "))
             
-            for col in self.cursor.execute("select * from compartments where shelf = ?", (row[0],)).fetchall():
-                string += f"{col[0]} ({col[2]}-{col[2]+col[3]})| "
+            compartments = self.cursor.execute("SELECT id, position, length FROM compartments WHERE shelf = ?", [shelf[0]]).fetchall()
+            if len(compartments) == 0:
+                string += "\n  <LEER>"
+            for compartment in compartments:
+                compartment_string = f"\n  Fach {compartment[0]} ({compartment[1]}-{compartment[1]+compartment[2]}): "
+                current_widht = len(compartment_string)
+            
+                parts_compartments_result = self.cursor.execute("""SELECT parts_compartments.stock, parts.label
+                                                                 FROM parts_compartments 
+                                                                 JOIN parts ON parts_compartments.part = parts.id
+                                                                 WHERE parts_compartments.compartment = ?""", [compartment[0]]).fetchall()
+
+                if len(parts_compartments_result) == 0:
+                    compartment_string += "<LEER>  "
+                else:
+                    for parts_compartments in parts_compartments_result:
+                        string_to_add = f"{parts_compartments[0]}x \"{parts_compartments[1]}\", "
+                        if current_widht + len(string_to_add) > terminal_width:
+                            current_widht = 4 + len(string_to_add) # padding
+                            compartment_string += f"\n    " + string_to_add
+                        else:
+                            current_widht += len(string_to_add)
+                            compartment_string += string_to_add
+                
+                string = string + compartment_string[:-2]
             
             string += "\n"
         
@@ -32,30 +58,30 @@ class DB:
         #self.cursor.execute("DROP TABLE IF EXISTS categories")
         self.cursor.execute("PRAGMA foreign_keys = ON;")
 
-        self.cursor.execute("""create table shelves (
+        self.cursor.execute("""CREATE TABLE shelves (
                                     id integer primary key,
                                     label text,
                                     position integer)""")
         
-        self.cursor.execute("""create table parts (
+        self.cursor.execute("""CREATE TABLE parts (
                                     id integer primary key,
                                     label text)""")
         
-        self.cursor.execute("""create table compartments (
+        self.cursor.execute("""CREATE TABLE compartments (
                                     id integer primary key,
                                     shelf integer, 
                                     position integer, 
                                     length integer, 
-                                    foreign key (shelf) references shelves(id) on delete cascade)""")
+                                    FOREIGN KEY (shelf) REFERENCES shelves(id) ON DELETE CASCADE)""")
         
-        self.cursor.execute("""create table parts_compartments (
+        self.cursor.execute("""CREATE TABLE parts_compartments (
                                     id integer primary key, 
                                     part integer, 
                                     compartment integer, 
                                     stock integer, 
-                                    foreign key (compartment) references compartments(id) on delete cascade,
-                                    foreign key (part) references parts(id) on delete cascade)""")
-        #self.cursor.execute("create table categories (id integer primary key, label)")
+                                    FOREIGN KEY (compartment) REFERENCES compartments(id) ON DELETE CASCADE,
+                                    FOREIGN KEY (part) REFERENCES parts(id) ON DELETE CASCADE)""")
+        #self.cursor.execute("CREATE TABLE categories (id integer primary key, label)")
 
 
         shelves = [(xl_col_to_name(i), int(i * 800/3)) for i in range(self.number_of_shelves)]
@@ -65,7 +91,7 @@ class DB:
                  ["Muttern M4x10"], ["Muttern M5x10"], ["Muttern M6x10"]]
         compartments = [1, 1, 2, 3, 3, 3]
         parts_compartments = [[1, 1, 5], [2, 1, 10], [3, 1, 2],
-                              [4, 2, 1], [5, 2, 50], [6, 3, 253],
+                              [4, 2, 1], [5, 2, 50], [6, 1, 253],
                               [7, 4, 23], [8, 5, 220], [9, 4, 54],
                               [10, 6, 83], [11, 6, 2], [12, 6, 62]]
 
@@ -74,15 +100,9 @@ class DB:
         
         print(shelves, compartments, parts)
 
-        self.cursor.executemany("insert into shelves (label, position) values (?, ?)", shelves)
-        self.cursor.executemany("insert into compartments (shelf, position, length) values (?, ?, ?)", compartments)
-        self.cursor.executemany("insert into parts (label) values (?)", parts)
-        self.cursor.executemany("insert into parts_compartments (part, compartment, stock) values (?, ?, ?)", parts_compartments)
+        self.cursor.executemany("INSERT INTO shelves (label, position) VALUES (?, ?)", shelves)
+        self.cursor.executemany("INSERT INTO compartments (shelf, position, length) VALUES (?, ?, ?)", compartments)
+        self.cursor.executemany("INSERT INTO parts (label) VALUES (?)", parts)
+        self.cursor.executemany("INSERT INTO parts_compartments (part, compartment, stock) VALUES (?, ?, ?)", parts_compartments)
 
         self.connection.commit()
-        
-        print(self.connection.execute("select * from shelves").fetchall())
-        print(self.connection.execute("select * from compartments").fetchall())
-        print(self.connection.execute("select * from parts").fetchall())
-        
-        input("> ")

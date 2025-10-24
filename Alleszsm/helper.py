@@ -26,15 +26,34 @@ def get_integer_places(integer: int) -> int:
     
     return int(math.log10(integer)) + 1
 
+def format_options(options: List) -> str:
+    num_options = len(options)
+    longest = get_integer_places(num_options)
+    
+    string = ""
+    
+    try:
+        options[0][1]
+        for option in options:
+            spacing = longest - get_integer_places(option[0])
+            string += f" ({option[0]}){' ' * spacing} " + option[1] + "\n"
+        return string[:-1]
+    except:
+        for i, option in enumerate(options):
+            spacing = longest - get_integer_places(i + 1)
+            string += f" ({i + 1}){' ' * spacing} " + option + "\n"
+        return string[:-1]
+    
 def menu(heading: str, options: Tuple[Tuple[str, Callable[[], None]]], args: Any = None) -> None:
         
     num_options = len(options)
     
+    longest = get_integer_places(num_options)
+    
     while True:
         reset_screen(heading)
 
-        for i, option in enumerate(options):
-            print(f" ({i+1}) " + option[0])
+        print(format_options([option[0] for option in options]))
         
         response = input("\n> ")
 
@@ -52,10 +71,13 @@ def menu(heading: str, options: Tuple[Tuple[str, Callable[[], None]]], args: Any
             options[selection][1](args)
         break
 
-def ask_integer(question: str) -> int:
+def ask_integer(question: str = None) -> int:
     while True:
         try:
-            result = int(input(f"\n{question}\n> "))
+            if question is None:
+                result = int(input("\n> "))
+            else:
+                result = int(input(f"\n{question}\n> "))
             break
         except ValueError:
             print("")
@@ -81,5 +103,13 @@ def ask_confirm(bias: bool = False) -> bool:
 def nothing() -> None:
     return
 
-def search(table: str, column: str, string: str, db):
-    return db.connection.execute(f"select id, * from {table} where {column} = ?", [string]).fetchall()
+def search(table: str, column: str, string: str, db, like: bool = False):
+    if like:
+        words = string.split()
+
+        conditions = " AND ".join([f"{column} LIKE ?" for _ in words])
+        params = [f"%{word}%" for word in words]
+        
+        return db.cursor.execute(f"SELECT * FROM {table} WHERE {conditions} ORDER BY {column} ASC", params).fetchall()
+    else:
+        return db.cursor.execute(f"select * from {table} where {column} = ? order by {column} asc", [string]).fetchall()
