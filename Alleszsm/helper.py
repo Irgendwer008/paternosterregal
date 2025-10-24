@@ -84,16 +84,16 @@ def ask_integer(question: str = None) -> int:
     
     return result
 
-def ask_confirm(bias: bool = False) -> bool:
+def ask_confirm(question: str = "Bist du dir sicher?", bias: bool = False) -> bool:
     if bias == False:
-        response = input(f"\nBist du dir Sicher? [y/N]\n> ")
+        response = input(f"\n{question} [y/N]\n> ")
         
         if response not in ["Y", "y"]:
             return False
         else: 
             return True
     else:
-        response = input(f"\nBist du dir Sicher? [Y/n]\n> ")
+        response = input(f"\n{question} [Y/n]\n> ")
         
         if response not in ["N", "n"]:
             return True
