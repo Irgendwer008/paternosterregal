@@ -146,45 +146,6 @@ def search_db():
         
     input("> ")
 
-def reset_db():
-    helper.reset_screen("Zurücksetzen")
-    
-    response = input("Sicher, dass du die Tabelle zurücksetzen willst? [y/N]\n> ")
-    
-    if response not in ["Y", "y"]:
-        return
-
-    db.reset()
-
-def manual_motorcontrol():
-    helper.reset_screen("Motorsteuerung manuel")
-    
-    print("Gib an, wie viele Schritte der Motor fahren soll. KeyboardInterrupt zum beenden.")
-    
-    try:
-        while True:
-            string = input("> ")
-            if string != "":
-                motor.move_step(int(string))
-    except KeyboardInterrupt:
-        return
-    
-def manual_motorcontrol_position():
-    helper.reset_screen("Motorsteuerung manuel auf Position")
-    
-    print("Gib an, zu welcher Position der Motor fahren soll. KeyboardInterrupt zum beenden.")
-    
-    try:
-        while True:
-            string = input("> ")
-            if string != "":
-                motor.move_to_position(int(string))
-    except KeyboardInterrupt:
-        return
-    
-def reset_motor_position():
-    motor.position = 0
-
 def compartment_menu():
     options = [("...hinzufügen", add_compartment),
                ("...bearbeiten", edit_compartment_menu),
@@ -365,6 +326,47 @@ def delete_compartment():
         db.connection.commit()
     else:
         input("\nInfo: Vorgang abgebrochen. > ")
+
+# Unsorted / Test Functions
+
+def reset_db():
+    helper.reset_screen("Zurücksetzen")
+    
+    response = input("Sicher, dass du die Tabelle zurücksetzen willst? [y/N]\n> ")
+    
+    if response not in ["Y", "y"]:
+        return
+
+    db.reset()
+
+def manual_motorcontrol():
+    helper.reset_screen("Motorsteuerung manuel")
+    
+    print("Gib an, wie viele Schritte der Motor fahren soll. KeyboardInterrupt zum beenden.")
+    
+    try:
+        while True:
+            string = input("> ")
+            if string != "":
+                motor.move_step(int(string))
+    except KeyboardInterrupt:
+        return
+    
+def manual_motorcontrol_position():
+    helper.reset_screen("Motorsteuerung manuel auf Position")
+    
+    print("Gib an, zu welcher Position der Motor fahren soll. KeyboardInterrupt zum beenden.")
+    
+    try:
+        while True:
+            string = input("> ")
+            if string != "":
+                motor.move_to_position(int(string))
+    except KeyboardInterrupt:
+        return
+    
+def reset_motor_position():
+    motor.position = 0
 
 def part_menu():
     options = [("...erstellen", add_part),
