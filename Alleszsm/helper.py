@@ -28,53 +28,52 @@ def get_integer_places(integer: int) -> int:
     
     return int(math.log10(integer)) + 1
 
-def format_options(options: List) -> str:
-    num_options = len(options)
-    longest = get_integer_places(num_options)
+def print_selection(options: Tuple[Tuple[int, str]]) -> None:
+    
+    longest = get_integer_places(max([option[0] for option in options])) # get number of places of largest number
     
     string = ""
     
-    try:
-        options[0][1]
-        for option in options:
-            spacing = longest - get_integer_places(option[0])
-            string += f" ({option[0]}){' ' * spacing} " + option[1] + "\n"
-        return string[:-1]
-    except:
-        for i, option in enumerate(options):
-            spacing = longest - get_integer_places(i + 1)
-            string += f" ({i + 1}){' ' * spacing} " + option + "\n"
-        return string[:-1]
+    for option in options:
+        spacing = longest - get_integer_places(option[0])
+        string += f" ({option[0]}){' ' * spacing} " + option[1] + "\n"
+    print(string, end="")
+
+def run_selection(options: Tuple[Tuple[int, str]], return_on_empty: bool = False) -> str:
     
-def menu(heading: str, options: Tuple[Tuple[str, Callable[[], None]]], args: Any = None) -> None:
-        
-    num_options = len(options)
-    
-    longest = get_integer_places(num_options)
+    numbers = [option[0] for option in options]
     
     while True:
-        reset_screen(heading)
 
-        print(format_options([option[0] for option in options]))
+        print_selection(options)
         
         response = input("\n> ")
         
         if response is "":
-            return
+            if return_on_empty:
+                return
+            else:
+                continue
 
         try:
-            selection = int(response) - 1
+            selection = int(response)
         except (ValueError, TypeError):
             continue
         
-        if not (0 <= selection < num_options):
-            continue
-        
-        if args is None:
-            options[selection][1]()
-        else:
-            options[selection][1](args)
-        break
+        if selection in numbers:
+            return selection
+    
+def menu(heading: str, options: Tuple[Tuple[str, Callable[[], None]]], *args) -> None:
+    reset_screen(heading)
+    
+    # Let user select what to execute
+    selection = run_selection(list(enumerate([option[0] for option in options], start=1)), return_on_empty=True)
+    
+    if selection is None:
+        return
+    else:
+        # Execute it
+        options[selection-1][1](*args)
 
 def ask_integer(question: str = None) -> int:
     while True:
@@ -105,8 +104,8 @@ def ask_confirm(question: str = "Bist du dir sicher?", bias: bool = False) -> bo
         else:
             return False
 
-def nothing() -> None:
-    return
+def nothing(*_) -> None:
+    input("Diese Funktion ist zur Zeit leider noch nicht verfügbar :/")
 
 def search(table: str, column: str, string: str, db, like: bool = False):
     if like:

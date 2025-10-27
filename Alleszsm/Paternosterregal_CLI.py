@@ -4,6 +4,7 @@ import LED
 import Motor
 
 import os
+from rich.console import Console
 import traceback
 
 if os.getenv("USER") != "root":
@@ -58,12 +59,7 @@ def add_remove_parts():
     
     results = helper.search("parts", "label", search, db, like=True)
     
-    print("\n" + helper.format_options(results))
-    
-    while True:
-        part_id = helper.ask_integer()
-        if part_id in [result[0] for result in results]:
-            break
+    part_id = helper.run_selection(results)
     
     connections = db.cursor.execute("""
         SELECT 
@@ -75,14 +71,12 @@ def add_remove_parts():
         FROM parts_compartments
         JOIN compartments ON parts_compartments.compartment = compartments.id
         JOIN shelves ON compartments.shelf = shelves.id
-        WHERE parts_compartments.part = ?""", (part_id,)).fetchall()
+        WHERE parts_compartments.part = ?""", [part_id]).fetchall()
     
     if len(connections) > 1:
-        print("\n" + helper.format_options([[connection[0], f"Fach {connection[1]}, {connection[2]}-{connection[2] + connection[3]}: {connection[4]} übrig"] for connection in connections]))
-        while True:
-            parts_compartments_id = helper.ask_integer()
-            if parts_compartments_id in [connection[0] for connection in connections]:
-                break
+        parts_compartments_id = helper.run_selection([[connection[0], # id
+                                                       f"Fach {connection[1]}, {connection[2]}-{connection[2] + connection[3]}: {connection[4]} übrig"] # text
+                                                      for connection in connections])
         
     else:
         parts_compartments_id = connections[0][0]
@@ -190,13 +184,7 @@ def add_compartment():
     db.connection.commit()
 
 def compartment_menu():
-    options = [("...bearbeiten", edit_compartment_menu),
-               ("...löschen", delete_compartment)]
-        
-    helper.menu("Fach...", options)
-
-def edit_compartment_menu():
-    helper.reset_screen("Fach löschen")
+    helper.reset_screen("Fach bearbeiten")
     
     ## Regal ##
     
@@ -239,7 +227,8 @@ def edit_compartment_menu():
     
     options = [("Regalzuordnung", edit_compartment_shelf),
                ("Startposition", edit_compartment_startingposition),
-               ("Länge", edit_compartment_length)]
+               ("Länge", edit_compartment_length),
+               ("Fach löschen", delete_compartment)]
         
     helper.menu("Fach bearbeiten", options, compartment_id)
 
@@ -287,50 +276,14 @@ def edit_compartment_length(compartment_id: int):
         db.connection.execute("UPDATE compartments SET length = ? WHERE id = ?", (length, compartment_id))
         db.connection.commit()
 
-def delete_compartment():
+def delete_compartment(compartment_id: int):
     helper.reset_screen("Fach löschen")
-    
-    ## Regal ##
-    
-    print("Zu welchem Regal gehört das Fach?\n")
-    
-    compartments = db.connection.execute("SELECT shelf FROM compartments").fetchall()
-    used_shelves = [x[0] for x in compartments]
-    
-    for shelf in db.connection.execute("SELECT id, label FROM shelves").fetchall():
-        if shelf[0] in used_shelves:
-            print(f" ({shelf[0]}) {shelf[1]}")
-        
-    while True:
-        try:
-            shelf_id = int(input("\n > "))
-            if shelf_id in range(shelf[0] + 1): # range() is zero-index-based
-                break
-        except ValueError:
-            pass
-        
-        print("\nKeine Valide Eingabe, bitte versuche es erneut:")
-    
-    ## Fach ##
-    
-    print("Welches Fach möchtest du löschen?")
-    
-    for compartment in db.connection.execute("SELECT id, position, length FROM compartments WHERE shelf = ?", [shelf_id]).fetchall():
-        print(f" ({compartment[0]}) {compartment[1]}-{compartment[2]}")
-        
-    while True:
-        try:
-            compartment_id = int(input("\n > "))
-            if compartment_id in range(compartment[0] + 1): # range() is zero-index-based
-                break
-        except ValueError:
-            pass
-        
-        print("\nKeine Valide Eingabe, bitte versuche es erneut:")
     
     ## Eintrag löschen ##
     
-    if helper.ask_confirm():
+    infos = db.cursor.execute("SELECT position, length FROM compartments WHERE id = ?", [compartment_id]).fetchone()
+    
+    if helper.ask_confirm(f"Sicher, dass du Fach {compartment_id} ({infos[0]}-{infos[0] + infos[1]}) löschen willst?"):
         db.cursor.execute("delete FROM compartments WHERE id = ?", [compartment_id])
         db.connection.commit()
     else:
@@ -405,67 +358,49 @@ def add_part():
         input(f"\nWare \"{label}\" erfolgreich Regal {compartment[0]}, ({compartment[1]}-{compartment[1] + compartment[2]}) hinzugefügt\n> ")   
 
 def part_menu():
-    options = [("...Bezeichnung ändern (coming soon)", helper.nothing),
-               ("...Stückzahl bearbeiten (coming soon)", helper.nothing),
-               ("...einem Fach zuordnen", assign_part_to_compartment),
-               ("...Fachzuordnung verschienen (coming soon)", helper.nothing),
-               ("...aus einem Fach entfernen (coming soon)", helper.nothing),
-               ("...löschen", remove_part)]
-        
-    helper.menu("Ware...", options)
-    
-def remove_part():
-    while True:
-        helper.reset_screen("Ware löschen")
-
-        search = input("Welche Ware möchtest du löschen?\n> ")
-        if search != "":
-            break
-    
-    results = helper.search("parts", "label", search, db, True)
-    
-    print("\n" + helper.format_options(results))
-    
-    while True:
-        part_id = helper.ask_integer()
-        if part_id in [result[0] for result in results]:
-            break
-    
-    label = db.cursor.execute("SELECT label FROM parts WHERE id = ?", [part_id]).fetchone()[0]
-    
-    if helper.ask_confirm(f"Bist du dir sicher, dass du die Ware \"{label}\" und all ihre Lagerbestände löschen willst?"):
-        db.cursor.execute("delete FROM parts WHERE id = ?", [part_id])
-        db.connection.commit()
-    else:
-        input("\nInfo: Vorgang abgebrochen. > ")
-    
-def assign_part_to_compartment():
     
     ## Ware erfragen
     
     while True:
-        helper.reset_screen("Ware einem Fach zuordnen")
+        helper.reset_screen("Ware bearbeiten / löschen")
 
-        search = input("Welche Ware möchtest du zuordnen?\n> ")
+        search = input("Welche Ware möchtest du bearbeiten?\n> ")
         if search != "":
             break
     
     results = helper.search("parts", "label", search, db, True)
     
     if len(results) == 0:
-        input(f"\nZu \"{search}\" konnte leider nichts gefunden werden :/\n> ")
+        input(f"\nZu \"{search}\" konnte leider keine Ware gefunden werden :/\n> ")
         return
     else:
-        print(f"\nZu \"{search}\" konnte folgendes gefunden werden:\n")
+        print(f"\nZu \"{search}\" konnte folgende Waren gefunden werden:\n")
     
-    print("\n" + helper.format_options(results))
+    part_id = helper.run_selection(results)
     
-    while True:
-        part_id = helper.ask_integer()
-        if part_id in [result[0] for result in results]:
-            break
+    options = [("Bezeichnung ändern", change_label),
+               ("Stückzahl bearbeiten (coming soon)", helper.nothing),
+               ("Fachzuordnung hinzufügen", assign_part_to_compartment),
+               ("Fachzuordnung verschienen (coming soon)", helper.nothing),
+               ("Fachzuordnung löschen (coming soon)", helper.nothing),
+               ("Teil Löschen", remove_part)]
     
     label = db.cursor.execute("SELECT label FROM parts WHERE id = ?", [part_id]).fetchone()[0]
+        
+    helper.menu("Ware...", options, part_id, label)
+    
+def change_label(part_id: int, old_label: str):
+    helper.reset_screen("Warenbezeichnung ändern")
+    
+    new_label = input(f"Wie soll die Ware \"{old_label}\" in Zukunft heißen?\n> ")
+    
+    if helper.ask_confirm(f"Sicher, dass du \"{old_label}\" in \"{new_label}\" umbenennen willst?", bias=True):
+        db.cursor.execute("UPDATE parts SET label = ? WHERE id = ?", [new_label, part_id])
+        db.connection.commit()
+    else:
+        input("\nInfo: Vorgang abgebrochen. > ")
+    
+def assign_part_to_compartment(part_id: int, label: str):
         
     ## Regal ##
     
@@ -517,6 +452,24 @@ def assign_part_to_compartment():
     compartment = db.cursor.execute("SELECT shelves.label, compartments.position, compartments.length FROM compartments JOIN shelves ON compartments.shelf = shelves.id WHERE compartments.id = ?", [compartment_id]).fetchone()
     
     input(f"\n{stock}x Ware \"{label}\" erfolgreich Regal {compartment[0]}, ({compartment[1]}-{compartment[1] + compartment[2]}) hinzugefügt\n> ")
+
+def remove_part(part_id: int, label: str):
+    while True:
+        helper.reset_screen("Ware löschen")
+
+        search = input("Welche Ware möchtest du löschen?\n> ")
+        if search != "":
+            break
+    
+    results = helper.search("parts", "label", search, db, True)
+    
+    part_id = helper.run_selection(results)
+    
+    if helper.ask_confirm(f"Bist du dir sicher, dass du die Ware \"{label}\" und all ihre Lagerbestände löschen willst?"):
+        db.cursor.execute("delete FROM parts WHERE id = ?", [part_id])
+        db.connection.commit()
+    else:
+        input("\nInfo: Vorgang abgebrochen. > ")
 
 def backup_menu():
     options = [("...exportieren", export_backup),
