@@ -11,6 +11,8 @@ class DB:
         self.number_of_shelves = number_of_shelves
     
     def to_string(self):
+        #TODO: add unallocated parts overview
+        
         terminal_width = shutil.get_terminal_size((80, 20))[0]
         
         string = ""
