@@ -24,8 +24,10 @@ def main_menu():
                ("Teile ein- & auslagern", add_remove_parts),
                ("Datenbank anzeigen", print_db),
                ("Datenbank durchsuchen", search_db),
-               ("Fach...", compartment_menu),
-               ("Ware...", part_menu),
+               ("Fach hinzufügen", add_compartment),
+               ("Fach bearbeiten / löschen", compartment_menu),
+               ("Ware erstellen", add_part),
+               ("Ware bearbeiten / löschen", part_menu),
                ("Sicherung...", backup_menu),
                ("=== Testfunktionen ===", helper.nothing),
                ("Datenbank zurücksetzen", reset_db),
@@ -37,9 +39,13 @@ def main_menu():
     helper.menu("Menü", options)
    
 def homing():
+    helper.reset_screen("Referenzfahrt")
+    
     motor.homing()
     global is_position_known
     is_position_known = True
+        
+    input(f"\nReferenzfahrt erfolgreich abgeschlossen\n> ")
 
 def add_remove_parts():
     helper.reset_screen("Teile ein- & auslagern")
@@ -150,13 +156,6 @@ def search_db():
         
     input("> ")
 
-def compartment_menu():
-    options = [("...hinzufügen", add_compartment),
-               ("...bearbeiten", edit_compartment_menu),
-               ("...löschen", delete_compartment)]
-        
-    helper.menu("Fach...", options)
-
 def add_compartment():
     helper.reset_screen("Fach hinzufügen")
     
@@ -189,6 +188,12 @@ def add_compartment():
     
     db.cursor.execute("insert into compartments (shelf, position, length) values (?, ?, ?)", [shelf_id, position, length])
     db.connection.commit()
+
+def compartment_menu():
+    options = [("...bearbeiten", edit_compartment_menu),
+               ("...löschen", delete_compartment)]
+        
+    helper.menu("Fach...", options)
 
 def edit_compartment_menu():
     helper.reset_screen("Fach löschen")
@@ -331,17 +336,6 @@ def delete_compartment():
     else:
         input("\nInfo: Vorgang abgebrochen. > ")
 
-def part_menu():
-    options = [("...erstellen", add_part),
-               ("...Bezeichnung ändern", helper.nothing),
-               ("...Stückzahl bearbeiten (coming soon)", helper.nothing),
-               ("...einem Fach zuordnen", assign_part_to_compartment),
-               ("...Fachzuordnung verschienen (coming soon)", helper.nothing),
-               ("...aus einem Fach entfernen (coming soon)", helper.nothing),
-               ("...löschen", remove_part)]
-        
-    helper.menu("Ware...", options)
-    
 def add_part():
     helper.reset_screen("Ware hinzufügen")
     
@@ -410,6 +404,16 @@ def add_part():
         
         input(f"\nWare \"{label}\" erfolgreich Regal {compartment[0]}, ({compartment[1]}-{compartment[1] + compartment[2]}) hinzugefügt\n> ")   
 
+def part_menu():
+    options = [("...Bezeichnung ändern (coming soon)", helper.nothing),
+               ("...Stückzahl bearbeiten (coming soon)", helper.nothing),
+               ("...einem Fach zuordnen", assign_part_to_compartment),
+               ("...Fachzuordnung verschienen (coming soon)", helper.nothing),
+               ("...aus einem Fach entfernen (coming soon)", helper.nothing),
+               ("...löschen", remove_part)]
+        
+    helper.menu("Ware...", options)
+    
 def remove_part():
     while True:
         helper.reset_screen("Ware löschen")

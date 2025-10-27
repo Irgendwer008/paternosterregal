@@ -66,5 +66,3 @@ class Motor():
                 if GPIO.input(22):
                     self.position = 60
                     break
-        
-        input(f"\nReferenzfahrt erfolgreich abgeschlossen\n> ")
