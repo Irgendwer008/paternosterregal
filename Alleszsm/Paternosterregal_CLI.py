@@ -334,9 +334,9 @@ def delete_compartment():
 def part_menu():
     options = [("...erstellen", add_part),
                ("...Bezeichnung ändern", helper.nothing),
-               ("...Stückzahl bearbeiten"),
-               
+               ("...Stückzahl bearbeiten (coming soon)", helper.nothing),
                ("...einem Fach zuordnen", assign_part_to_compartment),
+               ("...Fachzuordnung verschienen (coming soon)", helper.nothing),
                ("...aus einem Fach entfernen (coming soon)", helper.nothing),
                ("...löschen", remove_part)]
         
@@ -448,6 +448,12 @@ def assign_part_to_compartment():
     
     results = helper.search("parts", "label", search, db, True)
     
+    if len(results) == 0:
+        input(f"\nZu \"{search}\" konnte leider nichts gefunden werden :/\n> ")
+        return
+    else:
+        print(f"\nZu \"{search}\" konnte folgendes gefunden werden:\n")
+    
     print("\n" + helper.format_options(results))
     
     while True:
@@ -506,7 +512,7 @@ def assign_part_to_compartment():
     
     compartment = db.cursor.execute("SELECT shelves.label, compartments.position, compartments.length FROM compartments JOIN shelves ON compartments.shelf = shelves.id WHERE compartments.id = ?", [compartment_id]).fetchone()
     
-    input(f"\nWare \"{label}\" erfolgreich Regal {compartment[0]}, ({compartment[1]}-{compartment[1] + compartment[2]}) hinzugefügt\n> ")
+    input(f"\n{stock}x Ware \"{label}\" erfolgreich Regal {compartment[0]}, ({compartment[1]}-{compartment[1] + compartment[2]}) hinzugefügt\n> ")
 
 def backup_menu():
     options = [("...exportieren", export_backup),
