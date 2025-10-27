@@ -56,6 +56,9 @@ def menu(heading: str, options: Tuple[Tuple[str, Callable[[], None]]], args: Any
         print(format_options([option[0] for option in options]))
         
         response = input("\n> ")
+        
+        if response is "":
+            return
 
         try:
             selection = int(response) - 1
