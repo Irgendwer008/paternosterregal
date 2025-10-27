@@ -1,4 +1,6 @@
 import math
+import os
+import shutil
 from typing import Callable, Tuple, Any, List
 
 def reset_screen(heading: str = None):
@@ -116,3 +118,8 @@ def search(table: str, column: str, string: str, db, like: bool = False):
         return db.cursor.execute(f"SELECT * FROM {table} WHERE {conditions} ORDER BY {column} ASC", params).fetchall()
     else:
         return db.cursor.execute(f"SELECT * FROM {table} WHERE {column} = ? ORDER BY {column} ASC", [string]).fetchall()
+    
+def copy_and_replace(source_path, destination_path):
+    if os.path.exists(destination_path):
+        os.remove(destination_path)
+    shutil.copy2(source_path, destination_path)

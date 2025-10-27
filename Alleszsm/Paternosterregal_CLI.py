@@ -10,7 +10,9 @@ if os.getenv("USER") != "root":
     print("Dieses Programm muss mit superuser-Rechten ausgeführt werden!")
     exit()
 
-db = DB.DB(filename="paternosterregal.db")
+filename = "paternosterregal.db"
+
+db = DB.DB(filename=filename)
 led = LED.LED(LED_COUNT=64)
 motor = Motor.Motor(STEP_PIN=17, DIR_PIN=27, HALL_PIN=22, PAUSE_TIME=0.005)
 
@@ -23,18 +25,20 @@ def main_menu():
                ("Datenbank anzeigen", print_db),
                ("Datenbank durchsuchen", search_db),
                ("Fach...", compartment_menu),
-               ("Ware... (coming soon)", helper.nothing),
-               ("Sicherung... (coming soon)", helper.nothing),
+               ("Ware...", part_menu),
+               ("Sicherung...", backup_menu),
                ("=== Testfunktionen ===", helper.nothing),
                ("Datenbank zurücksetzen", reset_db),
                ("Motorposition zurücksetzen", reset_motor_position),
                ("Motor steuern manuell", manual_motorcontrol),
-               ("Motor steuern manuell: Position", manual_motorcontrol_position))
+               ("Motor steuern manuell: Position", manual_motorcontrol_position),
+               ("Motorposition anzeigen", print_motor_position))
     
     helper.menu("Menü", options)
    
 def homing():
     motor.homing()
+    global is_position_known
     is_position_known = True
 
 def add_remove_parts():
@@ -327,6 +331,206 @@ def delete_compartment():
     else:
         input("\nInfo: Vorgang abgebrochen. > ")
 
+def part_menu():
+    options = [("...erstellen", add_part),
+               ("...Bezeichnung ändern", helper.nothing),
+               ("...Stückzahl bearbeiten"),
+               
+               ("...einem Fach zuordnen", assign_part_to_compartment),
+               ("...aus einem Fach entfernen (coming soon)", helper.nothing),
+               ("...löschen", remove_part)]
+        
+    helper.menu("Ware...", options)
+    
+def add_part():
+    helper.reset_screen("Ware hinzufügen")
+    
+    ## Bezeichnung ##
+        
+    label = input("Wie lautet die Bezeichnung der neuen Ware?\n> ")
+    
+    ## Eintrag erstellen ##
+    
+    db.cursor.execute("insert into parts (label) values (?)", [label])
+    part_id = db.cursor.lastrowid
+    db.connection.commit()
+    
+    ## Ware einem Fach zuordnen
+    
+    if helper.ask_confirm(f"Ware \"{label}\" erfolgreich erstellt. Möchtest du diese noch einem Fach zuordnen?", bias=True):
+        
+        ## Regal ##
+        
+        print("\nZu welchem Regal gehört das Fach?\n")
+        
+        compartments = db.connection.execute("SELECT shelf FROM compartments").fetchall()
+        used_shelves = [x[0] for x in compartments]
+        
+        for shelf in db.connection.execute("SELECT id, label FROM shelves").fetchall():
+            if shelf[0] in used_shelves:
+                print(f" ({shelf[0]}) {shelf[1]}")
+            
+        while True:
+            try:
+                shelf_id = int(input("\n > "))
+                if shelf_id in range(shelf[0] + 1): # range() is zero-index-based
+                    break
+            except ValueError:
+                pass
+            
+            print("\nKeine Valide Eingabe, bitte versuche es erneut:")
+        
+        ## Fach ##
+        
+        print("Welchem Fach möchtest du die Ware zuordnen?")
+        
+        for compartment in db.connection.execute("SELECT id, position, length FROM compartments WHERE shelf = ?", [shelf_id]).fetchall():
+            print(f" ({compartment[0]}) {compartment[1]}-{compartment[2]}")
+            
+        while True:
+            try:
+                compartment_id = int(input("\n > "))
+                if compartment_id in range(compartment[0] + 1): # range() is zero-index-based
+                    break
+            except ValueError:
+                pass
+            
+            print("\nKeine Valide Eingabe, bitte versuche es erneut:")
+        
+        ## Stückzahl
+        
+        stock = helper.ask_integer("Wie viele Teile werden eingelagert?")
+    
+        ## Verbindung Herstellen
+    
+        db.cursor.execute("INSERT INTO parts_compartments (part, compartment, stock) VALUES (?, ?, ?)", [part_id, compartment_id, stock])
+        db.connection.commit()
+        
+        compartment = db.cursor.execute("SELECT shelves.label, compartments.position, compartments.length FROM compartments JOIN shelves ON compartments.shelf = shelves.id WHERE compartments.id = ?", [compartment_id]).fetchone()
+        
+        input(f"\nWare \"{label}\" erfolgreich Regal {compartment[0]}, ({compartment[1]}-{compartment[1] + compartment[2]}) hinzugefügt\n> ")   
+
+def remove_part():
+    while True:
+        helper.reset_screen("Ware löschen")
+
+        search = input("Welche Ware möchtest du löschen?\n> ")
+        if search != "":
+            break
+    
+    results = helper.search("parts", "label", search, db, True)
+    
+    print("\n" + helper.format_options(results))
+    
+    while True:
+        part_id = helper.ask_integer()
+        if part_id in [result[0] for result in results]:
+            break
+    
+    label = db.cursor.execute("SELECT label FROM parts WHERE id = ?", [part_id]).fetchone()[0]
+    
+    if helper.ask_confirm(f"Bist du dir sicher, dass du die Ware \"{label}\" und all ihre Lagerbestände löschen willst?"):
+        db.cursor.execute("delete FROM parts WHERE id = ?", [part_id])
+        db.connection.commit()
+    else:
+        input("\nInfo: Vorgang abgebrochen. > ")
+    
+def assign_part_to_compartment():
+    
+    ## Ware erfragen
+    
+    while True:
+        helper.reset_screen("Ware einem Fach zuordnen")
+
+        search = input("Welche Ware möchtest du zuordnen?\n> ")
+        if search != "":
+            break
+    
+    results = helper.search("parts", "label", search, db, True)
+    
+    print("\n" + helper.format_options(results))
+    
+    while True:
+        part_id = helper.ask_integer()
+        if part_id in [result[0] for result in results]:
+            break
+    
+    label = db.cursor.execute("SELECT label FROM parts WHERE id = ?", [part_id]).fetchone()[0]
+        
+    ## Regal ##
+    
+    print("\nZu welchem Regal gehört das Fach, dem du die Ware zuordnen willst?\n")
+    
+    compartments = db.connection.execute("SELECT shelf FROM compartments").fetchall()
+    used_shelves = [x[0] for x in compartments]
+    
+    for shelf in db.connection.execute("SELECT id, label FROM shelves").fetchall():
+        if shelf[0] in used_shelves:
+            print(f" ({shelf[0]}) {shelf[1]}")
+        
+    while True:
+        try:
+            shelf_id = int(input("\n > "))
+            if shelf_id in range(shelf[0] + 1): # range() is zero-index-based
+                break
+        except ValueError:
+            pass
+        
+        print("\nKeine Valide Eingabe, bitte versuche es erneut:")
+    
+    ## Fach ##
+    
+    print("Welchem Fach möchtest du die Ware zuordnen?")
+    
+    for compartment in db.connection.execute("SELECT id, position, length FROM compartments WHERE shelf = ?", [shelf_id]).fetchall():
+        print(f" ({compartment[0]}) {compartment[1]}-{compartment[2]}")
+        
+    while True:
+        try:
+            compartment_id = int(input("\n > "))
+            if compartment_id in range(compartment[0] + 1): # range() is zero-index-based
+                break
+        except ValueError:
+            pass
+        
+        print("\nKeine Valide Eingabe, bitte versuche es erneut:")
+    
+    ## Stückzahl
+    
+    stock = helper.ask_integer("Wie viele Teile werden eingelagert?")
+
+    ## Verbindung Herstellen
+
+    db.cursor.execute("INSERT INTO parts_compartments (part, compartment, stock) VALUES (?, ?, ?)", [part_id, compartment_id, stock])
+    db.connection.commit()
+    
+    compartment = db.cursor.execute("SELECT shelves.label, compartments.position, compartments.length FROM compartments JOIN shelves ON compartments.shelf = shelves.id WHERE compartments.id = ?", [compartment_id]).fetchone()
+    
+    input(f"\nWare \"{label}\" erfolgreich Regal {compartment[0]}, ({compartment[1]}-{compartment[1] + compartment[2]}) hinzugefügt\n> ")
+
+def backup_menu():
+    options = [("...exportieren", export_backup),
+               ("...importieren", import_backup)]
+        
+    helper.menu("Sicherung...", options)
+
+def export_backup():
+    if helper.ask_confirm(f"Sicher, dass du die Datenbank nach /home/pi/Downdloads/ kopieren willst? Evtl. bestehende Dateien mit dem Namen \"{filename}\" werden überschrieben!"):
+        cwd = os.getcwd()
+        helper.copy_and_replace(cwd + "/" + filename, "/home/pi/Downloads/" + filename)
+    else:
+        input("Vorgang abgebrochen.\n> ")
+
+def import_backup():
+    if helper.ask_confirm(f"Sicher, dass du die Datenbank (\"/home/pi/Downdloads/{filename}\") importieren willst? Alle jetzigen Informationen gehen dabei verloren!"):
+        cwd = os.getcwd()
+        helper.copy_and_replace("/home/pi/Downloads/" + filename, cwd + "/" + filename)
+        
+        global db
+        db = DB.DB(filename=filename)
+    else:
+        input("Vorgang abgebrochen.\n> ")
+
 # Unsorted / Test Functions
 
 def reset_db():
@@ -364,32 +568,16 @@ def manual_motorcontrol_position():
                 motor.move_to_position(int(string))
     except KeyboardInterrupt:
         return
+
+def print_motor_position():
+    helper.reset_screen("Motorposition")
     
+    input(str(motor.position) + "\n> ")
+
 def reset_motor_position():
     motor.position = 0
-
-def part_menu():
-    options = [("...erstellen", add_part),
-               ("...einem Fach zuordnen (coming soon)", helper.nothing),
-               ("...aus einem Fach entfernen (coming soon)", helper.nothing),
-               ("...löschen", remove_part)]
-        
-    helper.menu("Ware...", options)
-    
-def add_part():
-    helper.reset_screen("Ware hinzufügen")
-    
-    ## Bezeichnung ##
-        
-    label = helper.ask_integer("Wie lautet die Bezeichnung der Ware?")
-    
-    ## Eintrag erstellen ##
-    
-    db.cursor.execute("insert into parts (label) values (?)", [label])
-    db.connection.commit()
-
-def remove_part():
-    helper.reset_screen("Ware löschen")
+    global is_position_known
+    is_position_known = True
 
 try:
     while True:
