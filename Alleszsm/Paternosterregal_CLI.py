@@ -14,7 +14,7 @@ if os.getenv("USER") != "root":
 filename = "paternosterregal.db"
 
 db = DB.DB(filename=filename)
-led = LED.LED(LED_COUNT=64)
+led = LED.LED(LED_COUNT=64, LED_PIN = 18)
 motor = Motor.Motor(STEP_PIN=17, DIR_PIN=27, HALL_PIN=22, PAUSE_TIME=0.005)
 
 is_position_known = False
