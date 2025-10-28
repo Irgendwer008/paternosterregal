@@ -70,10 +70,12 @@ def menu(heading: str, options: Tuple[Tuple[str, Callable[[], None]]], pretext: 
         print(pretext + "\n")
     
     # Let user select what to execute
+    print("Was möchtest du tun?")
+    
     selection = run_selection(list(enumerate([option[0] for option in options], start=1)), return_on_empty=True)
     
     if selection is None:
-        return
+        return 1
     else:
         # Execute it
         options[selection-1][1](*args)
