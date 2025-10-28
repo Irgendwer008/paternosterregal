@@ -39,7 +39,7 @@ def print_selection(options: Tuple[Tuple[int, str]]) -> None:
         string += f" ({option[0]}){' ' * spacing} " + option[1] + "\n"
     print(string, end="")
 
-def run_selection(options: Tuple[Tuple[int, str]], return_on_empty: bool = False) -> str:
+def run_selection(options: Tuple[Tuple[int, str]], return_on_empty: bool = False) -> int:
     
     numbers = [option[0] for option in options]
     
@@ -49,7 +49,7 @@ def run_selection(options: Tuple[Tuple[int, str]], return_on_empty: bool = False
         
         response = input("\n> ")
         
-        if response is "":
+        if response == "":
             if return_on_empty:
                 return
             else:
@@ -103,6 +103,9 @@ def ask_confirm(question: str = "Bist du dir sicher?", bias: bool = False) -> bo
             return True
         else:
             return False
+
+def no_results(string: str = "Dazu konnte leider nichts gefunden werden :/"):
+    input(string + "\n> ")
 
 def nothing(*_) -> None:
     input("Diese Funktion ist zur Zeit leider noch nicht verfügbar :/")
