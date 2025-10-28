@@ -545,6 +545,53 @@ def move_part_to_compartment(part_id: int, label: str):
     
     input(f"\nWare \"{label}\" erfolgreich von\n- Regal {old[0]}, Fach {old[1]} ({old[2]}-{old[2] + old[3]})\nnach\n- Regal {new[0]}, Fach {new[1]} ({new[2]}-{new[2] + new[3]}) verschoben\n> ")
 
+def remove_part_from_compartment(part_id: int, label: str):
+    helper.reset_screen(f"Fachzuordnung von Ware \"{label}\" löschen")
+    
+    ## Zuordnung ##
+    parts_compartments = db.cursor.execute("""SELECT
+                                                  parts_compartments.id,
+                                                  shelves.label,
+                                                  compartments.id,
+                                                  compartments.position,
+                                                  compartments.length,
+                                                  parts_compartments.stock
+                                              FROM parts_compartments 
+                                              JOIN compartments ON parts_compartments.compartment = compartments.id
+                                              JOIN shelves ON compartments.shelf = shelves.id
+                                              WHERE parts_compartments.part = ?""", [part_id]).fetchall()
+    
+    match len(parts_compartments):
+        case 0:
+            helper.no_results()
+            return
+        case 1:
+            print(f"Diese Ware befindet sich zur Zeit in Fach {parts_compartments[2]} ({parts_compartments[1]}, {parts_compartments[3]}-{parts_compartments[3] + parts_compartments[4]}.\n")
+            parts_compartments_id = parts_compartments[0][0]
+        case _:
+            print("Welche Zuordnung möchtest du löschen?")
+            parts_compartments_id = helper.run_selection([(pc[0], f"Regal {pc[1]}, Fach {pc[2]} ({pc[3]}-{pc[3] + pc[4]}): {pc[5]}x") for pc in parts_compartments])
+    
+    connection = db.cursor.execute("""SELECT
+                                          parts_compartments.id,
+                                          shelves.label,
+                                          compartments.id,
+                                          compartments.position,
+                                          compartments.length,
+                                          parts_compartments.stock
+                                      FROM parts_compartments 
+                                      JOIN compartments ON parts_compartments.compartment = compartments.id
+                                      JOIN shelves ON compartments.shelf = shelves.id
+                                      WHERE parts_compartments.id = ?""", [parts_compartments_id]).fetchone()
+    
+    string = f"{connection[5]}x Ware \"{label}\" in Fach {connection[2]} (Regal {connection[1]}, {connection[3]}-{connection[3] + connection[4]})"
+    
+    if helper.ask_confirm("Sicher, dass du " + string + " löschen willst?"):
+        db.cursor.execute("DELETE from parts_compartments WHERE id = ?", [parts_compartments_id])
+        input(string + " erfolgreich gelöscht\n> ")
+    else:
+        input("Info: Vorgang abgebrochen > ")
+
 def remove_part(part_id: int, label: str):
     while True:
         helper.reset_screen("Ware löschen")
