@@ -25,7 +25,7 @@ class DB:
                 string += "\n  <LEER>"
             for compartment in compartments:
                 compartment_string = f"\n  Fach {compartment[0]} ({compartment[1]}-{compartment[1]+compartment[2]}): "
-                current_widht = len(compartment_string)
+                current_width = len(compartment_string)
             
                 parts_compartments_result = self.cursor.execute("""SELECT parts_compartments.stock, parts.label
                                                                    FROM parts_compartments 
@@ -37,11 +37,11 @@ class DB:
                 else:
                     for parts_compartments in parts_compartments_result:
                         string_to_add = f"{parts_compartments[0]}x \"{parts_compartments[1]}\", "
-                        if current_widht + len(string_to_add) > terminal_width:
-                            current_widht = 4 + len(string_to_add) # padding
+                        if current_width + len(string_to_add) > terminal_width:
+                            current_width = 4 + len(string_to_add) # padding
                             compartment_string += f"\n  └ " + string_to_add
                         else:
-                            current_widht += len(string_to_add)
+                            current_width += len(string_to_add)
                             compartment_string += string_to_add
                 
                 string = string + compartment_string[:-2]
