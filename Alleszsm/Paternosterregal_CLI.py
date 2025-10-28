@@ -591,12 +591,13 @@ def import_backup():
 def reset_db():
     helper.reset_screen("Zurücksetzen")
     
-    response = input("Sicher, dass du die Tabelle zurücksetzen willst? [y/N]\n> ")
-    
-    if response not in ["Y", "y"]:
+    if not helper.ask_confirm("Sicher, dass du die Tabelle zurücksetzen willst?"):
         return
 
-    db.reset()
+    if helper.ask_confirm("Willst du die Tabelle danach wieder mit Standartwerten füllen?"):
+        db.reset(insert_default_testing_values=True)
+    else:
+        db.reset(insert_default_testing_values=False)
 
 def manual_motorcontrol():
     helper.reset_screen("Motorsteuerung manuel")
