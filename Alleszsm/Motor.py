@@ -46,8 +46,8 @@ class Motor():
         GPIO.cleanup()
     
     def homing(self):
-        GPIO.output(self.DIR_PIN, GPIO.LOW)
         if GPIO.input(22):
+            GPIO.output(self.DIR_PIN, GPIO.LOW)
             while True:
                 GPIO.output(self.STEP_PIN, GPIO.HIGH)
                 time.sleep(self.PAUSE_TIME)
@@ -57,13 +57,12 @@ class Motor():
                     self.position = 0
                     break
         else:
+            GPIO.output(self.DIR_PIN, GPIO.HIGH)
             while True:
                 GPIO.output(self.STEP_PIN, GPIO.HIGH)
                 time.sleep(self.PAUSE_TIME)
                 GPIO.output(self.STEP_PIN, GPIO.LOW)
                 time.sleep(self.PAUSE_TIME)
                 if GPIO.input(22):
-                    self.position = 400
+                    self.position = 60
                     break
-        
-        input(f"{self.position}> ")

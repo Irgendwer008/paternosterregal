@@ -1,5 +1,5 @@
-/.lgd-nfy0
+.lgd-nfy0
 /venv
 *.db
-**/__pycache__/
-*.pyc
+/Alleszsm/__pycache__
+Alleszsm/__pycache__/Motor.cpython-311.pyc
