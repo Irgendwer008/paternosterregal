@@ -91,10 +91,11 @@ def add_remove_parts():
                                  JOIN shelves ON compartments.shelf = shelves.id
                                  WHERE parts_compartments.id = ?""", [parts_compartments_id]).fetchone()
     
-    if not helper.ask_confirm(f"Bewegung zu Regal \"{shelf[1]}\" beginnen?", True):
-        return
+    if motor.position != shelf[0]:
+        if not helper.ask_confirm(f"Bewegung zu Regal \"{shelf[1]}\" beginnen?", True):
+            return
+        motor.move_to_position(shelf[0])
     
-    motor.move_to_position(shelf[0])
     led.highlight(shelf[2], shelf[2] + shelf[3])
     
     change = helper.ask_integer("Wie viele Teile wurden dazugegeben (+) oder abgegeben (-)?")
