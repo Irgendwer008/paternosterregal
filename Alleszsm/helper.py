@@ -63,8 +63,11 @@ def run_selection(options: Tuple[Tuple[int, str]], return_on_empty: bool = False
         if selection in numbers:
             return selection
     
-def menu(heading: str, options: Tuple[Tuple[str, Callable[[], None]]], *args) -> None:
+def menu(heading: str, options: Tuple[Tuple[str, Callable[[], None]]], pretext: str | None = None, *args):
     reset_screen(heading)
+    
+    if not pretext == None:
+        print(pretext + "\n")
     
     # Let user select what to execute
     selection = run_selection(list(enumerate([option[0] for option in options], start=1)), return_on_empty=True)
