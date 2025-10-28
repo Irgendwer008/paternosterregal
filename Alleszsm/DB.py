@@ -50,7 +50,7 @@ class DB:
         
         return string
         
-    def reset(self):              
+    def reset(self, insert_default_testing_values: bool = False):              
         self.cursor.execute("PRAGMA foreign_keys = OFF;")  
         self.cursor.execute("DROP TABLE IF EXISTS shelves")
         self.cursor.execute("DROP TABLE IF EXISTS parts")
@@ -84,25 +84,25 @@ class DB:
                                     FOREIGN KEY (part) REFERENCES parts(id) ON DELETE CASCADE)""")
         #self.cursor.execute("CREATE TABLE categories (id integer primary key, label)")
 
+        if insert_default_testing_values:
+            shelves = [(xl_col_to_name(i), int(i * 800/3)) for i in range(self.number_of_shelves)]
+            parts = [["Schrauben M4x10"], ["Schrauben M5x10"], ["Schrauben M6x10"],
+                    ["Schrauben M4x16"], ["Schrauben M5x16"], ["Schrauben M6x16"],
+                    ["Schrauben M4x20"], ["Schrauben M5x20"], ["Schrauben M6x20"],
+                    ["Muttern M4x10"], ["Muttern M5x10"], ["Muttern M6x10"]]
+            compartments = [1, 1, 2, 3, 3, 3]
+            parts_compartments = [[1, 1, 5], [2, 1, 10], [3, 1, 2],
+                                [4, 2, 1], [5, 2, 50], [6, 1, 253],
+                                [7, 4, 23], [8, 5, 220], [9, 4, 54],
+                                [10, 5, 83], [11, 5, 2], [12, 5, 62],
+                                [10, 6, 12], [11, 6, 5], [12, 6, 3]]
 
-        shelves = [(xl_col_to_name(i), int(i * 800/3)) for i in range(self.number_of_shelves)]
-        parts = [["Schrauben M4x10"], ["Schrauben M5x10"], ["Schrauben M6x10"],
-                 ["Schrauben M4x16"], ["Schrauben M5x16"], ["Schrauben M6x16"],
-                 ["Schrauben M4x20"], ["Schrauben M5x20"], ["Schrauben M6x20"],
-                 ["Muttern M4x10"], ["Muttern M5x10"], ["Muttern M6x10"]]
-        compartments = [1, 1, 2, 3, 3, 3]
-        parts_compartments = [[1, 1, 5], [2, 1, 10], [3, 1, 2],
-                              [4, 2, 1], [5, 2, 50], [6, 1, 253],
-                              [7, 4, 23], [8, 5, 220], [9, 4, 54],
-                              [10, 5, 83], [11, 5, 2], [12, 5, 62],
-                              [10, 6, 12], [11, 6, 5], [12, 6, 3]]
+            for i in range(compartments.__len__()):
+                compartments[i] = (compartments[i], i * 6 + 3, 5)
 
-        for i in range(compartments.__len__()):
-            compartments[i] = (compartments[i], i * 6 + 3, 5)
-
-        self.cursor.executemany("INSERT INTO shelves (label, position) VALUES (?, ?)", shelves)
-        self.cursor.executemany("INSERT INTO compartments (shelf, position, length) VALUES (?, ?, ?)", compartments)
-        self.cursor.executemany("INSERT INTO parts (label) VALUES (?)", parts)
-        self.cursor.executemany("INSERT INTO parts_compartments (part, compartment, stock) VALUES (?, ?, ?)", parts_compartments)
+            self.cursor.executemany("INSERT INTO shelves (label, position) VALUES (?, ?)", shelves)
+            self.cursor.executemany("INSERT INTO compartments (shelf, position, length) VALUES (?, ?, ?)", compartments)
+            self.cursor.executemany("INSERT INTO parts (label) VALUES (?)", parts)
+            self.cursor.executemany("INSERT INTO parts_compartments (part, compartment, stock) VALUES (?, ?, ?)", parts_compartments)
 
         self.connection.commit()

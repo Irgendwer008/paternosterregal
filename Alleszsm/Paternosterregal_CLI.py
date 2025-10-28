@@ -693,6 +693,13 @@ def reset_motor_position():
     global is_position_known
     is_position_known = True
 
+def print_position():
+    reset_screen("Position")
+    
+    print(f"\n Motorposition = {motor.position}")
+    
+    input("\n> ")
+
 try:
     while True:
         main_menu()   
