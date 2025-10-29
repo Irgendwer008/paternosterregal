@@ -14,7 +14,7 @@ if os.getenv("USER") != "root":
 filename = "paternosterregal.db"
 
 db = DB.DB(filename=filename)
-led = LED.LED(LED_COUNT=64, LED_PIN = 18)
+led = LED.LED(LED_COUNT=65, LED_PIN = 18)
 motor = Motor.Motor(STEP_PIN=17, DIR_PIN=27, HALL_PIN=22, PAUSE_TIME=0.005)
 
 is_position_known = False
@@ -35,7 +35,7 @@ def main_menu():
                ("Motorposition zurücksetzen", reset_motor_position),
                ("Motor steuern manuell", manual_motorcontrol),
                ("Motor steuern manuell: Position", manual_motorcontrol_position),
-               ("Motorposition anzeigen", print_motor_position))
+               ("LED-Test", led_test))
     
     helper.menu("Menü", options)
    
@@ -693,12 +693,17 @@ def reset_motor_position():
     global is_position_known
     is_position_known = True
 
-def print_position():
-    reset_screen("Position")
+def led_test():
+    helper.reset_screen("LED testen")
     
-    print(f"\n Motorposition = {motor.position}")
+    start = helper.ask_integer("Ab welcher LED möchtest du testen?")
+    end = helper.ask_integer("Bis welche LED möchtest du testen?")
     
-    input("\n> ")
+    led.highlight(start, end)
+    
+    input("\nFertig\n> ")
+    
+    led.clear()
 
 try:
     while True:
