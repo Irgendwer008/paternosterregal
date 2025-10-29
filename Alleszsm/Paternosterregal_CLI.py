@@ -30,14 +30,8 @@ def main_menu():
                (f"{color_compartment()} bearbeiten / löschen", compartment_menu),
                (f"{color_part()} erstellen", add_part),
                (f"{color_part()} bearbeiten / löschen", part_menu),
-               ("Sicherung...", backup_menu),
-               ("=== Testfunktionen ===", helper.nothing),
-               ("Datenbank zurücksetzen", reset_db),
-               ("Motorposition zurücksetzen", reset_motor_position),
-               ("Motor steuern manuell", manual_motorcontrol),
-               ("Motor steuern manuell: Position", manual_motorcontrol_position),
-               ("Motorposition anzeigen", print_motor_position),
-               ("LED-Test", led_test))
+               ("Sicherungen", backup_menu),
+               ("Testfunktionen", test_functions))
     
     helper.menu("Menü", options)
    
@@ -600,6 +594,17 @@ def import_backup():
 
 # Unsorted / Test Functions
 
+def test_functions():
+    
+    options = [("Datenbank zurücksetzen", reset_db),
+               ("Motorposition zurücksetzen", reset_motor_position),
+               ("Motor steuern manuell", manual_motorcontrol),
+               ("Motor steuern manuell: Position", manual_motorcontrol_position),
+               ("Motorposition anzeigen", print_motor_position),
+               ("LED-Test", led_test)]
+    
+    helper.menu("Testfunktionen", options)
+
 def reset_db():
     helper.reset_screen("Zurücksetzen")
     
@@ -655,7 +660,7 @@ def led_test():
     
     led.highlight(start, end)
     
-    input("\nFertig\n> ")
+    input("\nBeenden\n> ")
     
     led.clear()
 
