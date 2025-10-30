@@ -7,6 +7,8 @@ import os
 from rich.console import Console
 import traceback
 
+#TODO: upon creation: check if things already exist
+
 if os.getenv("USER") != "root":
     print("Dieses Programm muss mit superuser-Rechten ausgeführt werden!")
     exit(code=1)
@@ -41,6 +43,8 @@ def homing():
     motor.homing()
     global is_position_known
     is_position_known = True
+    motor.move_to_position(0)
+    
         
     input(f"\nReferenzfahrt erfolgreich abgeschlossen\n> ")
 
@@ -194,7 +198,7 @@ def compartment_menu(compartment_id: int | None = None):
             compartment_id = results[0][0]
         else:
             print("\nWelches Fach möchtest du bearbeiten / löschen?\n")
-            compartment_id = helper.run_selection([(result[0], helper.compartment(result[0])) for result in results])
+            compartment_id = helper.run_selection([(result[0], helper.compartment(result[0], show_shelf=False)) for result in results])
         
     connections = db.cursor.execute("""SELECT 
                                        parts_compartments.stock,
@@ -287,15 +291,15 @@ def add_part():
         
         print("\nZu welchem " + color_shelf() + " gehört das " + color_compartment() + "?\n")
         
-        compartments = db.cursor.execute("SELECT shelves.id FROM shelves WHERE EXISTS (SELECT 1 FROM compartments WHERE compartments.shelf = shelves.id)").fetchall()
+        results = db.cursor.execute("SELECT shelves.id, shelves.label FROM shelves WHERE EXISTS (SELECT 1 FROM compartments WHERE compartments.shelf = shelves.id)").fetchall()
         shelf_id = helper.run_selection([[result[0], color_shelf(result[1])] for result in results])
         
         ## Fach ##
         
-        print("Welchem " + color_compartment() + " möchtest du die Ware zuordnen?")
+        print("\nWelchem " + color_compartment() + " möchtest du die Ware zuordnen?")
         
         results = db.cursor.execute("SELECT id FROM compartments WHERE shelf = ?", [shelf_id]).fetchall()
-        compartment_id = helper.run_selection([[results[0], helper.compartment(results[0])]])
+        compartment_id = helper.run_selection([[result[0], helper.compartment(result[0], show_shelf=False)] for result in results])
         
         ## Stückzahl
         
@@ -308,7 +312,7 @@ def add_part():
         
         compartment = db.cursor.execute("SELECT shelves.label, compartments.position, compartments.length FROM compartments JOIN shelves ON compartments.shelf = shelves.id WHERE compartments.id = ?", [compartment_id]).fetchone()
         
-        input(f"\nWare \"{label}\" erfolgreich Regal {compartment[0]}, ({compartment[1]}-{compartment[1] + compartment[2]}) hinzugefügt\n> ")   
+        input(f"\n{helper.part(label)} erfolgreich {helper.compartment(compartment_id, show_shelf=False)} hinzugefügt\n> ")   
 
 def part_menu(part_id: int | None = None, label: str | None = None):
     if not part_id:
@@ -499,7 +503,7 @@ def move_part_to_compartment(part_id: int, label: str):
                                            WHERE parts_compartments.compartment = compartments.id
                                            AND parts_compartments.part = ?
                                        )""", [shelf_id, part_id]).fetchall()
-    compartment_id = helper.run_selection([(result[0], helper.compartment(result[0])) for result in results])
+    compartment_id = helper.run_selection([(result[0], helper.compartment(result[0], show_shelf=False)) for result in results])
 
     ## Verbindung verschieben ##
     
