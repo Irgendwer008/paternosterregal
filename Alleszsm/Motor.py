@@ -25,22 +25,22 @@ class Motor():
         if steps == 0:
             return
         
-        if steps > 0:
+        if steps < 0:
             GPIO.output(self.DIR_PIN, GPIO.HIGH)
-            for i in range(steps):
-                GPIO.output(self.STEP_PIN, GPIO.HIGH)
-                time.sleep(self.PAUSE_TIME)
-                GPIO.output(self.STEP_PIN, GPIO.LOW)
-                time.sleep(self.PAUSE_TIME)
-                self.position += 1
-        else:
-            GPIO.output(self.DIR_PIN, GPIO.LOW)
             for i in range(-steps):
                 GPIO.output(self.STEP_PIN, GPIO.HIGH)
                 time.sleep(self.PAUSE_TIME)
                 GPIO.output(self.STEP_PIN, GPIO.LOW)
                 time.sleep(self.PAUSE_TIME)
                 self.position -= 1
+        else:
+            GPIO.output(self.DIR_PIN, GPIO.LOW)
+            for i in range(steps):
+                GPIO.output(self.STEP_PIN, GPIO.HIGH)
+                time.sleep(self.PAUSE_TIME)
+                GPIO.output(self.STEP_PIN, GPIO.LOW)
+                time.sleep(self.PAUSE_TIME)
+                self.position += 1
     
     def exit(self):
         GPIO.cleanup()
@@ -54,7 +54,7 @@ class Motor():
                 GPIO.output(self.STEP_PIN, GPIO.LOW)
                 time.sleep(self.PAUSE_TIME)
                 if not GPIO.input(22):
-                    self.position = 0
+                    self.position = 1080
                     break
         else:
             GPIO.output(self.DIR_PIN, GPIO.HIGH)
@@ -64,5 +64,5 @@ class Motor():
                 GPIO.output(self.STEP_PIN, GPIO.LOW)
                 time.sleep(self.PAUSE_TIME)
                 if GPIO.input(22):
-                    self.position = 60
+                    self.position = 1140
                     break
