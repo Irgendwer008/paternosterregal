@@ -261,8 +261,6 @@ def delete_compartment(compartment_id: int):
     
     ## Eintrag löschen ##
     
-    infos = db.cursor.execute("SELECT position, length FROM compartments WHERE id = ?", [compartment_id]).fetchone()
-    
     if helper.ask_confirm(f"Sicher, dass du {helper.compartment(compartment_id)} löschen willst?"):
         db.cursor.execute("delete FROM compartments WHERE id = ?", [compartment_id])
         db.connection.commit()
