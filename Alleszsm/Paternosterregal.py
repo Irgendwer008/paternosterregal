@@ -98,7 +98,7 @@ def add_remove_parts():
             return
         motor.move_to_position(shelf[0])
     
-    led.highlight(shelf[2], shelf[2] + shelf[3])
+    led.highlight(shelf[2], shelf[2] + shelf[3] - 1)
     
     change = helper.ask_integer("Wie viele Teile wurden dazugegeben (+) oder abgegeben (-)?")
     
@@ -148,7 +148,7 @@ def search_db():
                                            """, [part[0]]).fetchall()
             
             for result in results:
-                print(f"  {result[0]}x in Fach #{result[4]} (Regal {result[3]}, {result[1]}-{result[2]})")
+                print(f"  {result[0]}x in {helper.compartment(result[4])}")
         
     input("\n> ")
 
